@@ -1,16 +1,16 @@
 import torch
 import torch.nn as nn
 
-class Model(nn.Module):
-    def __init__(self, configs):
-        super(Model, self).__init__()
+class lstm_model(nn.Module):
+    def __init__(self, config):
+        super(lstm_model, self).__init__()
 
-        self.num_classes = configs.c_out
-        self.num_layers = configs.num_layers
-        self.input_size = configs.input_size
-        self.hidden_size = configs.hidden_size
-        self.seq_length = configs.seq_len
-        self.pred_len = configs.pred_len
+        self.num_classes = config["c_out"]
+        self.num_layers = config["num_layers"]
+        self.input_size = config["enc_in"]
+        self.hidden_size = config["hidden_size"]
+        self.seq_length = config["seq_len"]
+        self.pred_len = config["pred_len"]
 
         # LSTM 네트워크 정의
         self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size,

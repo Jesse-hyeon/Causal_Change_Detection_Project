@@ -11,12 +11,12 @@ from utils.former_class import FullAttention, AttentionLayer, ConvLayer, Encoder
 #########################################
 # Model
 #########################################
-class transformer(nn.Module):
+class transformer_model(nn.Module):
     """
     Vanilla Transformer
     """
     def __init__(self, configs):
-        super(transformer, self).__init__()
+        super(transformer_model, self).__init__()
         self.pred_len = configs["pred_len"]
         self.output_attention = configs["output_attention"]
 

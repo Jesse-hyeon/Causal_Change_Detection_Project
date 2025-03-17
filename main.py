@@ -8,7 +8,8 @@ import numpy as np
 
 import torch
 
-from train.exp import Exp_Main
+from train.exp_former import Exp_Main_former
+from train.exp_rnn import Exp_Main_rnn
 
 # JSON 파일 경로
 config_path = "/Users/choeseoheon/Desktop/Causal-Discovery/src/Arg/config.json"
@@ -22,15 +23,22 @@ random.seed(fix_seed)
 torch.manual_seed(fix_seed)
 np.random.seed(fix_seed)
 
-len_in = len(config["feature_set"]) - 1
-# config (json file 안에 있는 enc_in, dec_in len_in으로 변경하는 코드
-config["enc_in"] = len_in
-config["dec_in"] = len_in
+len_in_former = len(config["feature_set"]) - 1
+len_in_rnn= len(config["feature_set"]) - 1 + 3
 
 def run(config):
-    exp = Exp_Main(config)
-    exp.train(setting='custom_experiment')
-    exp.test(setting='custom_experiment')
+    if config["model"] in ['transformer', 'ns_Transformer']:
+        config["enc_in"] = len_in_former
+        config["dec_in"] = len_in_former
+        exp = Exp_Main_former(config)
+        exp.train(setting='custom_experiment')
+        exp.test(setting='custom_experiment')
+    else:
+        config["enc_in"] = len_in_rnn
+        config["dec_in"] = len_in_rnn
+        exp = Exp_Main_rnn(config)
+        exp.train(setting='custom_experiment')
+        exp.test(setting='custom_experiment')
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

@@ -112,6 +112,9 @@ def D_STAT(pred, true):
     Compute directional accuracy D_stat (%)
     which measures how often the predicted direction matches the actual direction.
     """
+    true = np.squeeze(true)
+    pred = np.squeeze(pred)
+
     true_diff = np.diff(true, axis=1)
     # Actual changes
     pred_diff = np.diff(pred, axis=1) # Predicted changes

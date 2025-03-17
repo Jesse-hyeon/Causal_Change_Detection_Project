@@ -46,12 +46,12 @@ class Projector(nn.Module):
 #########################################
 # Model
 #########################################
-class non_stationary_transformer(nn.Module):
+class ns_transformer_model(nn.Module):
     """
     Non-stationary Transformer
     """
     def __init__(self, configs):
-        super(non_stationary_transformer, self).__init__()
+        super(ns_transformer_model, self).__init__()
         self.pred_len = configs["pred_len"]
         self.seq_len = configs["seq_len"]
         self.label_len = configs["label_len"]

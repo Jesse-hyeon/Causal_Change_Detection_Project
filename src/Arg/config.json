@@ -40,7 +40,7 @@
         "Com_Gold"
     ],
 
-    "model": "ns_Transformer",
+    "model": "lstm",
     "seed": 2021,
 
     "data": "custom",
@@ -86,5 +86,8 @@
         128,
         128
     ],
-    "p_hidden_layers": 2
+    "p_hidden_layers": 2,
+
+    "num_layers" : 1,
+    "hidden_size" : 256
 }
