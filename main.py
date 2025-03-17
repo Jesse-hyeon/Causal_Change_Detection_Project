@@ -10,7 +10,6 @@ import torch
 
 from train.exp import Exp_Main
 
-
 # JSON 파일 경로
 config_path = "/Users/choeseoheon/Desktop/Causal-Discovery/src/Arg/config.json"
 
@@ -30,6 +29,7 @@ config["dec_in"] = len_in
 
 def run(config):
     exp = Exp_Main(config)
+    exp.train(setting='custom_experiment')
     exp.test(setting='custom_experiment')
 
 # Press the green button in the gutter to run the script.

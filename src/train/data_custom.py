@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 
 from sklearn.preprocessing import StandardScaler
@@ -81,7 +82,7 @@ class Dataset_Custom(Dataset):
             self.scaler_y.fit(train_target.values)  # ✅ y 값만 scaling
 
             data = self.scaler.transform(df_data.values)
-            # data_y = self.scaler_y.transform(df_target.values)  # ✅ y 값만 따로 scaling
+            data_y = self.scaler_y.transform(df_target.values)  # ✅ y 값만 따로 scaling
         else:
             data = df_data.values
 
@@ -97,6 +98,16 @@ class Dataset_Custom(Dataset):
 
         elif self.timeenc == 1:
             None
+
+        if self.model == "lstm":
+            self.data_stamp = data_stamp
+            y = data[:, -1].reshape(-1, 1)
+            x = data[:, :-1]
+
+            data = np.concatenate((x, data_stamp, y), axis=1)
+        else:
+            None
+
 
         self.data_x = data[border1:border2]
         self.data_y = data[border1:border2]

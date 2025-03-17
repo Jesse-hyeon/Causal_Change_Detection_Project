@@ -16,9 +16,9 @@ class TriangularCausalMask():
 ### Learning_rate 학습 함수 정의
 def adjust_learning_rate(optimizer, epoch, args):
     # lr = args.learning_rate * (0.2 ** (epoch // 2))
-    if args.lradj == 'type1':
-        lr_adjust = {epoch: args.learning_rate * (0.5 ** ((epoch - 1) // 1))}
-    elif args.lradj == 'type2':
+    if args["lradj"] == 'type1':
+        lr_adjust = {epoch: args["learning_rate"] * (0.5 ** ((epoch - 1) // 1))}
+    elif args["lradj"] == 'type2':
         lr_adjust = {
             2: 5e-5, 4: 1e-5, 6: 5e-6, 8: 1e-6,
             10: 5e-7, 15: 1e-7, 20: 5e-8
@@ -107,11 +107,24 @@ def MSPE(pred, true):
     return np.mean(np.square((pred - true) / true))
 
 
+def D_STAT(pred, true):
+    """
+    Compute directional accuracy D_stat (%)
+    which measures how often the predicted direction matches the actual direction.
+    """
+    true_diff = np.diff(true, axis=1)
+    # Actual changes
+    pred_diff = np.diff(pred, axis=1) # Predicted changes
+    correct_direction = (true_diff * pred_diff) >= 0  # Check if both have the same sign
+    return np.mean(correct_direction) * 100  # Convert to percentage
+
+
 def metric(pred, true):
     mae = MAE(pred, true)
     mse = MSE(pred, true)
     rmse = RMSE(pred, true)
     mape = MAPE(pred, true)
     mspe = MSPE(pred, true)
+    D_stat = D_STAT(pred, true)
 
-    return mae, mse, rmse, mape, mspe
+    return mae, mse, rmse, mape, mspe, D_stat

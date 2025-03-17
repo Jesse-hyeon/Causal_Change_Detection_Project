@@ -56,7 +56,6 @@ class Exp_Basic(object):
 
 warnings.filterwarnings('ignore')
 
-
 ### 2) Main
 class Exp_Main(Exp_Basic):
     def __init__(self, config):
@@ -126,6 +125,7 @@ class Exp_Main(Exp_Basic):
         return total_loss
 
     def train(self, setting):
+        print("start training")
         train_data, train_loader = self._get_data(flag='train')
         # print("train_data :", len(train_data))
         vali_data, vali_loader = self._get_data(flag='val')
@@ -233,6 +233,7 @@ class Exp_Main(Exp_Basic):
         return self.model
 
     def test(self, setting, test=0):
+        print("start testing")
         test_data, test_loader = self._get_data(flag='test')
         if test:
             print('loading model')
@@ -327,8 +328,8 @@ class Exp_Main(Exp_Basic):
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
-        mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print('mape:{}, mae:{}'.format(mape, mae))
+        mae, mse, rmse, mape, mspe, d_stat = metric(preds, trues)
+        print('mape:{:.4f}, mae:{:.2f}, d_stat:{:.2f}'.format(mape, mae, d_stat))
         f = open("result.txt", 'a')
         f.write(setting + "  \n")
         f.write('mape:{}, mae:{}'.format(mape, mae))
