@@ -1,16 +1,37 @@
-# This is a sample Python script.
+import sys
+import os
+sys.path.append(os.path.abspath("src"))  # src 폴더를 경로에 추가
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+import json
+import random
+import numpy as np
+
+import torch
+
+from train.exp import Exp_Main
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+# JSON 파일 경로
+config_path = "/Users/choeseoheon/Desktop/Causal-Discovery/src/Arg/config.json"
 
+# JSON 파일 로드
+with open(config_path, "r") as f:
+    config = json.load(f)
+
+fix_seed = config["seed"]
+random.seed(fix_seed)
+torch.manual_seed(fix_seed)
+np.random.seed(fix_seed)
+
+len_in = len(config["feature_set"]) - 1
+# config (json file 안에 있는 enc_in, dec_in len_in으로 변경하는 코드
+config["enc_in"] = len_in
+config["dec_in"] = len_in
+
+def run(config):
+    exp = Exp_Main(config)
+    exp.test(setting='custom_experiment')
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    run(config)
