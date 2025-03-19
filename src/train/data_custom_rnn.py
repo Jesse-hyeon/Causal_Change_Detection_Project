@@ -102,7 +102,7 @@ class Dataset_Custom(Dataset):
 
         self.data_stamp = data_stamp
 
-        # 미래 공변량 추가
+        ### 미래 공변량 데이터에 추가
         y = data[:, -1].reshape(-1, 1)
         x = data[:, :-1]
 

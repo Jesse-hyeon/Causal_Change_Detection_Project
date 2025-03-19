@@ -9,12 +9,11 @@ import numpy as np
 import optuna
 from sklearn.model_selection import TimeSeriesSplit
 
-# 필요한 모듈들을 import합니다.
 from sklearn.model_selection import BaseCrossValidator
 from train.exp_former import Exp_Main_former
 from train.exp_rnn import Exp_Main_rnn
-# from train.data_custom_former import data_provider
 
+### sliding window split
 class FixedPredLenSplit(BaseCrossValidator):
     def __init__(self, n_splits, pred_len):
         self.n_splits = n_splits  # 교차 검증 Fold 개수
@@ -37,6 +36,7 @@ class FixedPredLenSplit(BaseCrossValidator):
     def get_n_splits(self, X, y=None, groups=None):
         return self.n_splits
 
+### optuna class
 class HyperParameterTuner:
     def __init__(self, base_config, param_ranges, n_splits=3, n_trials=50):
         """
@@ -56,11 +56,10 @@ class HyperParameterTuner:
         """
         ExpMain 객체를 생성하여 학습을 진행한 후, validation 데이터에 대한 loss(MSE)를 반환합니다.
         """
-        if args["model"] in ['transformer', 'ns_transformer']:
+        if args["model"] in args['former_model']:
             trainer = Exp_Main_former(args)
         else:
             trainer = Exp_Main_rnn(args)
-        # trainer = Exp_Main_former(args)
         trainer.train(setting=setting)
         vali_data, vali_loader = trainer._get_data(flag='val')
         criterion = trainer._select_criterion()
@@ -76,7 +75,7 @@ class HyperParameterTuner:
               train_indices, val_indices를 활용하여 해당 인덱스의 데이터만 반환하도록 구현되어 있어야 합니다.
         """
         # 전체 데이터셋 불러오기 (train flag)
-        train_len = args["train_len_original"]
+        train_len = args["num_train_original"]
         total_indices = np.arange(train_len)
 
         # TimeSeriesSplit을 사용하여 train/val 분할
@@ -147,12 +146,12 @@ class HyperParameterTuner:
         print("Final training model")
         final_config = self.base_config.copy()
         final_config.update(self.best_params)
-        final_config["num_train"] = final_config["train_len_original"]
-        final_config["num_valid"] = final_config["valid_len_original"]
+        final_config["num_train"] = final_config["num_train_original"]
+        final_config["num_valid"] = final_config["num_valid_original"]
 
         final_args = final_config
 
-        if final_args["model"] in ['transformer', 'ns_transformer']:
+        if final_args["model"] in final_args['former_model']:
             trainer = Exp_Main_former(final_args)
         else:
             trainer = Exp_Main_rnn(final_args)

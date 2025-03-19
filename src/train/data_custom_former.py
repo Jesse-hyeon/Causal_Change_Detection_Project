@@ -52,11 +52,6 @@ class Dataset_Custom(Dataset):
         cols.remove('date')
         df_raw = df_raw[['date'] + cols + [self.target]]
 
-        # 👀수정 전
-        # num_train = int(len(df_raw) * 0.8)
-        # num_vali = len(df_raw) - num_train - num_test
-
-        # 👀수정 후
         num_train = self.num_train
         num_test = int(len(df_raw) * 0.1)
         num_vali = self.num_valid

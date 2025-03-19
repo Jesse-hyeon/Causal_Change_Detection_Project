@@ -23,14 +23,15 @@
         "Com_Gold"
     ],
 
-    "model": "transformer",
+    "former_model" : ["transformer", "ns_transformer"],
+    "rnn_model" : ["rnn", "lstm"],
+
+    "model": "lstm",
     "seed": 2021,
 
     "data": "custom",
     "root_path": "/Users/choeseoheon/Desktop/Causal-Discovery/input/",
     "data_path": "DailyData.csv",
-    "train_len_original" : 2000,
-    "valid_len_original" : 100,
     "features": "MS",
     "target": "Com_Gold",
     "freq": "b",
@@ -38,6 +39,10 @@
 
     "num_train": 0,
     "num_valid": 0,
+    "num_train_original" : 2000,
+    "num_valid_original" : 100,
+    "train_ratio" : 0.8,
+    "test_ratio" : 0.1,
 
     "seq_len": 90,
     "label_len": 45,
@@ -57,8 +62,11 @@
     "output_attention": false,
     "factor": 1,
 
+    "num_layers" : 1,
+    "hidden_size" : 256,
+
     "num_workers": 0,
-    "train_epochs": 3,
+    "train_epochs": 5,
     "batch_size": 32,
     "patience": 3,
     "learning_rate": 0.0001,
@@ -74,8 +82,5 @@
         128,
         128
     ],
-    "p_hidden_layers": 2,
-
-    "num_layers" : 1,
-    "hidden_size" : 256
+    "p_hidden_layers": 2
 }
