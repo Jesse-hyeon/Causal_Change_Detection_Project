@@ -8,9 +8,9 @@ from torch.utils.data import Dataset, DataLoader
 class Dataset_Custom(Dataset):
     def __init__(self, root_path, flag='train', size=None,
                  features='S', data_path='ETTh1.csv',
-                 target='OT', scale=True, timeenc=0, freq='b', feature_set=None):
-        # size [seq_len, label_len, pred_len]
-        # info
+                 target='OT', scale=True, timeenc=0, freq='b', feature_set=None,
+                 num_train = 0, num_valid = 0):
+
         if size == None:
             self.seq_len = 24 * 4 * 4
             self.label_len = 24 * 4
@@ -31,38 +31,43 @@ class Dataset_Custom(Dataset):
         self.freq = freq
         self.feature_set = feature_set
 
+        self.num_train = num_train
+        self.num_valid = num_valid
+
         self.root_path = root_path
         self.data_path = data_path
         self.__read_data__()
 
     def __read_data__(self):
         self.scaler = StandardScaler()
-        self.scaler_y = StandardScaler()  # ✅ y를 위한 scaler 생성
+        self.scaler_y = StandardScaler()
         df_raw = pd.read_csv(os.path.join(self.root_path,
                                           self.data_path))
 
         ### 변수 선택
         df_raw = df_raw[self.feature_set]
 
-        '''
-        df_raw.columns: ['date', ...(other features), target feature]
-        '''
         cols = list(df_raw.columns)
         cols.remove(self.target)
         cols.remove('date')
         df_raw = df_raw[['date'] + cols + [self.target]]
 
-        # print(cols)
-        num_train = int(len(df_raw) * 0.8)
+        # 👀수정 전
+        # num_train = int(len(df_raw) * 0.8)
+        # num_vali = len(df_raw) - num_train - num_test
+
+        # 👀수정 후
+        num_train = self.num_train
         num_test = int(len(df_raw) * 0.1)
-        num_vali = len(df_raw) - num_train - num_test
+        num_vali = self.num_valid
+
         border1s = [0, num_train - self.seq_len, len(df_raw) - num_test - self.seq_len]
         border2s = [num_train, num_train + num_vali, len(df_raw)]
         border1 = border1s[self.set_type]
         border2 = border2s[self.set_type]
 
-        df_data = df_raw[cols]  # ✅ 전체 feature에 대한 데이터
-        df_target = df_raw[[self.target]]  # ✅ y 값만 있는 데이터
+        df_data = df_raw[cols]
+        df_target = df_raw[[self.target]]
 
         if self.features == 'M' or self.features == 'MS':
             cols_data = df_raw.columns[1:]
@@ -71,18 +76,14 @@ class Dataset_Custom(Dataset):
             df_data = df_raw[[self.target]]
 
         if self.scale:
-            # train_data = df_data[border1s[0]:border2s[0]]
-            # self.scaler.fit(train_data.values)
-            # data = self.scaler.transform(df_data.values)
-
             train_data = df_data[border1s[0]:border2s[0]]
             train_target = df_target[border1s[0]:border2s[0]]
 
-            self.scaler.fit(train_data.values)  # ✅ 전체 feature scaling
-            self.scaler_y.fit(train_target.values)  # ✅ y 값만 scaling
+            self.scaler.fit(train_data.values)
+            self.scaler_y.fit(train_target.values)
 
             data = self.scaler.transform(df_data.values)
-            data_y = self.scaler_y.transform(df_target.values)  # ✅ y 값만 따로 scaling
+            data_y = self.scaler_y.transform(df_target.values)
         else:
             data = df_data.values
 
@@ -128,20 +129,19 @@ data_dict = {
     'custom': Dataset_Custom,
 }
 
-
 def data_provider(config, flag):
     Data = data_dict[config["data"]]
     timeenc = 0 if config["embed"] != 'timeF' else 1
 
-    if flag == 'test':
-        shuffle_flag = False
-        drop_last = False
-        batch_size = 1
-        freq = config["freq"]
-    else:
+    if flag == 'train':
         shuffle_flag = False
         drop_last = True
         batch_size = config["batch_size"]
+        freq = config["freq"]
+    else:
+        shuffle_flag = False
+        drop_last = False
+        batch_size = 1
         freq = config["freq"]
 
     data_set = Data(
@@ -153,7 +153,9 @@ def data_provider(config, flag):
         target=config["target"],
         timeenc=timeenc,
         freq=freq,
-        feature_set=config["feature_set"]
+        feature_set=config["feature_set"],
+        num_train = config["num_train"],
+        num_valid = config["num_valid"]
     )
 
     print(flag, len(data_set))

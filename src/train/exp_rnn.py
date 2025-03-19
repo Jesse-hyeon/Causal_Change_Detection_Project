@@ -157,6 +157,7 @@ class Exp_Main_rnn(Exp_Basic_rnn):
                 outputs = outputs[:, -self.config["pred_len"]:, f_dim:]
                 batch_y = batch_y[:, -self.config["pred_len"]:, f_dim:].to(self.device)
 
+
                 loss = criterion(outputs, batch_y)
                 train_loss.append(loss.item())
 

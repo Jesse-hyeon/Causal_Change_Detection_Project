@@ -22,10 +22,12 @@ with open(config_path, "r") as f:
 
 # 데이터 불러오기
 raw_data = pd.read_csv(os.path.join(base_config["root_path"], base_config["data_path"]))
-train_len = int(len(raw_data)*0.8)
-print("train len", train_len)
-base_config["train_len"] = train_len
+train_len_original = int(len(raw_data)*0.8)
+train_len_test = int(len(raw_data) * 0.1)
+valid_len_original = len(raw_data) - train_len_original - train_len_test
 
+base_config["train_len_original"] = train_len_original
+base_config["valid_len_original"] = valid_len_original
 
 fix_seed = base_config["seed"]
 random.seed(fix_seed)
@@ -43,32 +45,24 @@ param_ranges = {
     "d_layers": {"type": "int", "low": 1, "high": 3},
     "d_ff": {"type": "int", "low": 512, "high": 4096, "step": 512},
     "dropout": {"type": "float", "low": 0.0, "high": 0.5},
-    "learning_rate": {"type": "float", "low": 1e-5, "high": 1e-2, "log": True},
     "batch_size": {"type": "categorical", "choices": [16, 32, 64]},
     "activation": {"type": "categorical", "choices": ["relu", "gelu"]},
-    "p_hidden_dims": {"type": "categorical", "choices": [[16, 16], [32, 32], [64, 64]]},
-    "p_hidden_layers": {"type": "int", "low": 1, "high": 4}
 }
 
 def run(config):
     if config["model"] in ['transformer', 'ns_transformer']:
-        config["enc_in"] = len_in_former
-        config["dec_in"] = len_in_former
-        exp = Exp_Main_former(config)
-        exp.train(setting='custom_experiment')
-        exp.test(setting='custom_experiment')
+        base_config["enc_in"] = len_in_former
+        base_config["dec_in"] = len_in_former
+        tuner = HyperParameterTuner(base_config, param_ranges, n_splits=1, n_trials=1)
+        tuner.run_study()
+        tuner.train_final_model()
     else:
-        config["enc_in"] = len_in_rnn
-        config["dec_in"] = len_in_rnn
-        exp = Exp_Main_rnn(config)
-        exp.train(setting='custom_experiment')
-        exp.test(setting='custom_experiment')
+        base_config["enc_in"] = len_in_rnn
+        base_config["dec_in"] = len_in_rnn
+        tuner = HyperParameterTuner(base_config, param_ranges, n_splits=2, n_trials=3)
+        tuner.run_study()
+        tuner.train_final_model()
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     run(base_config)
-    # base_config["enc_in"] = len_in_former
-    # base_config["dec_in"] = len_in_former
-    # tuner = HyperParameterTuner(base_config, param_ranges, n_splits=2, n_trials=2)
-    # study = tuner.run_study()
-    # tuner.train_final_model()

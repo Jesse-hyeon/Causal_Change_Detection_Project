@@ -24,6 +24,7 @@ class Projector(nn.Module):
                                      padding_mode='circular', bias=False)
 
         layers = [nn.Linear(2 * enc_in, hidden_dims[0]), nn.ReLU()]
+
         for i in range(hidden_layers - 1):
             layers += [nn.Linear(hidden_dims[i], hidden_dims[i + 1]), nn.ReLU()]
 

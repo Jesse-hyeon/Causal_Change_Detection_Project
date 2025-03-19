@@ -12,7 +12,8 @@ from sklearn.model_selection import TimeSeriesSplit
 # 필요한 모듈들을 import합니다.
 from sklearn.model_selection import BaseCrossValidator
 from train.exp_former import Exp_Main_former
-from train.data_custom_former import data_provider
+from train.exp_rnn import Exp_Main_rnn
+# from train.data_custom_former import data_provider
 
 class FixedPredLenSplit(BaseCrossValidator):
     def __init__(self, n_splits, pred_len):
@@ -55,7 +56,11 @@ class HyperParameterTuner:
         """
         ExpMain 객체를 생성하여 학습을 진행한 후, validation 데이터에 대한 loss(MSE)를 반환합니다.
         """
-        trainer = Exp_Main_former(args)
+        if args["model"] in ['transformer', 'ns_transformer']:
+            trainer = Exp_Main_former(args)
+        else:
+            trainer = Exp_Main_rnn(args)
+        # trainer = Exp_Main_former(args)
         trainer.train(setting=setting)
         vali_data, vali_loader = trainer._get_data(flag='val')
         criterion = trainer._select_criterion()
@@ -71,31 +76,26 @@ class HyperParameterTuner:
               train_indices, val_indices를 활용하여 해당 인덱스의 데이터만 반환하도록 구현되어 있어야 합니다.
         """
         # 전체 데이터셋 불러오기 (train flag)
-        train_len = args["train_len"]
+        train_len = args["train_len_original"]
         total_indices = np.arange(train_len)
 
-        # ✅ TimeSeriesSplit을 사용하여 train/val 분할
+        # TimeSeriesSplit을 사용하여 train/val 분할
         tscv = FixedPredLenSplit(n_splits=self.n_splits, pred_len=args["pred_len"])
         fold_losses = []
+        fold_id = 0
 
-        for fold_id, (train_idx, val_idx) in enumerate(tscv.split(total_indices), start=1):
+        for train_idx, val_idx in tscv.split(total_indices):
+            fold_id += 1
             print(f"--- TS-CV Fold {fold_id}/{self.n_splits} ---")
-
-            # ✅ args를 복제하고, fold별 train/val 인덱스 정보를 추가
+            # args를 복제하고, fold별 train/val 인덱스 정보를 추가
             fold_args = copy.deepcopy(args)
-            fold_args["train_indices"] = train_idx.tolist()
-            fold_args["val_indices"] = val_idx.tolist()
+            fold_args["num_train"] = len(train_idx)
+            fold_args["num_valid"] = len(val_idx)
 
-            # ✅ Train 및 Validation 데이터 생성
-            train_set, train_loader = data_provider(fold_args, flag="train")
-            val_set, val_loader = data_provider(fold_args, flag="val")
-
-            # ✅ 모델 학습 및 평가 수행
-            fold_loss = self._train_and_evaluate(fold_args, train_loader, val_loader)
+            fold_loss = self._train_and_evaluate(fold_args, setting=f"trial_fold_{fold_id}")
             print(f"Fold {fold_id} validation loss: {fold_loss:.4f}")
             fold_losses.append(fold_loss)
 
-        # ✅ fold별 validation loss 평균 계산
         avg_loss = np.mean(fold_losses)
         print(f"Average validation loss over {self.n_splits} folds: {avg_loss:.4f}")
         return avg_loss
@@ -123,7 +123,6 @@ class HyperParameterTuner:
         # base_config와 sampled_params 병합
         config = self.base_config.copy()
         config.update(sampled_params)
-        # args = SimpleNamespace(**config)
         args = config
 
         # TS‑CV 기반 평가 실행
@@ -145,13 +144,18 @@ class HyperParameterTuner:
         최적의 하이퍼파라미터(best_params)를 바탕으로 전체 training set으로 모델을 재학습하고,
         test set에 대해 최종 평가를 진행합니다.
         """
+        print("Final training model")
         final_config = self.base_config.copy()
         final_config.update(self.best_params)
-        # final_args = SimpleNamespace(**final_config)
+        final_config["num_train"] = final_config["train_len_original"]
+        final_config["num_valid"] = final_config["valid_len_original"]
 
         final_args = final_config
 
-        trainer = Exp_Main_former(final_args)
+        if final_args["model"] in ['transformer', 'ns_transformer']:
+            trainer = Exp_Main_former(final_args)
+        else:
+            trainer = Exp_Main_rnn(final_args)
         trainer.train(setting="final_experiment")
         trainer.test(setting="final_experiment", test=0)
         print("Final model training and testing complete.")
