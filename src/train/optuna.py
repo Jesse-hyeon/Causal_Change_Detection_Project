@@ -57,13 +57,13 @@ class HyperParameterTuner:
         ExpMain 객체를 생성하여 학습을 진행한 후, validation 데이터에 대한 loss(MSE)를 반환합니다.
         """
         if args["model"] in args['former_model']:
-            trainer = Exp_Main_former(args)
+            trainer_initial = Exp_Main_former(args, final_run=False)
         else:
-            trainer = Exp_Main_rnn(args)
-        trainer.train(setting=setting)
-        vali_data, vali_loader = trainer._get_data(flag='val')
-        criterion = trainer._select_criterion()
-        val_loss = trainer.vali(vali_data, vali_loader, criterion)
+            trainer_initial = Exp_Main_rnn(args, final_run=False)
+        trainer_initial.train(setting=setting)
+        vali_data, vali_loader = trainer_initial._get_data(flag='val')
+        criterion = trainer_initial._select_criterion()
+        val_loss = trainer_initial.vali(vali_data, vali_loader, criterion)
         return val_loss
 
     def _run_trial(self, args):
@@ -152,9 +152,9 @@ class HyperParameterTuner:
         final_args = final_config
 
         if final_args["model"] in final_args['former_model']:
-            trainer = Exp_Main_former(final_args)
+            trainer_final = Exp_Main_former(final_args, final_run=True)
         else:
-            trainer = Exp_Main_rnn(final_args)
-        trainer.train(setting="final_experiment")
-        trainer.test(setting="final_experiment", test=0)
+            trainer_final = Exp_Main_rnn(final_args, final_run=True)
+        trainer_final.train(setting="final_experiment")
+        trainer_final.test(setting="final_experiment", test=0)
         print("Final model training and testing complete.")

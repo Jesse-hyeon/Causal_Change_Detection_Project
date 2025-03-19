@@ -6,6 +6,7 @@ import json
 import random
 import pandas as pd
 import numpy as np
+import wandb
 
 import torch
 
@@ -50,6 +51,11 @@ param_ranges = {
 
 ### 최종 실험 함수
 def run(config):
+    wandb.init(
+        project=config.get("wandb_project", "default_project"),
+        config=config
+    )
+
     if config["model"] in config["former_model"]: # Transformer 기반 모델인 경우
         # 입력 feature 수 조정
         len_in_former = len(base_config["feature_set"]) - 1
@@ -70,4 +76,5 @@ def run(config):
 
 
 if __name__ == '__main__':
+    base_config["wandb_project"] = "test"
     run(base_config)

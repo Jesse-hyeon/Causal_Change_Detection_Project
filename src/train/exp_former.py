@@ -11,6 +11,8 @@ import torch.nn as nn
 import torch.optim as optim
 import warnings
 
+import wandb
+
 from utils.etc import EarlyStopping, adjust_learning_rate, metric
 
 ### data
@@ -58,8 +60,9 @@ warnings.filterwarnings('ignore')
 
 ### 2) Main
 class Exp_Main_former(Exp_Basic_former):
-    def __init__(self, config):
+    def __init__(self, config, final_run):
         super(Exp_Main_former, self).__init__(config)
+        self.final_run = final_run
 
     def _build_model(self):
         model_dict = {
@@ -296,30 +299,35 @@ class Exp_Main_former(Exp_Basic_former):
                 preds.append(pred_original)
                 trues.append(true_original)
 
-                if i % 20 == 0:
-                    input = batch_x.detach().cpu().numpy()
-                    input_y = input[0, :, -1].reshape(-1, 1)
-                    input_original = test_data.inverse_transform(input_y)
-                    input_original = input_original.reshape(-1)
+                if self.final_run:
+                    if i % 20 == 0:
+                        input = batch_x.detach().cpu().numpy()
+                        input_y = input[0, :, -1].reshape(-1, 1)
+                        input_original = test_data.inverse_transform(input_y)
+                        input_original = input_original.reshape(-1)
 
-                    gt = np.concatenate((input_original, true_original[0, :, -1]), axis=0)
-                    pd = np.concatenate((input_original, pred_original[0, :, -1]), axis=0)
+                        gt = np.concatenate((input_original, true_original[0, :, -1]), axis=0)
+                        pd = np.concatenate((input_original, pred_original[0, :, -1]), axis=0)
 
-                    # Matplotlib으로 시각화
-                    plt.figure(figsize=(10, 5))
-                    plt.plot(gt, label="Ground Truth", color="blue")
-                    plt.plot(pd, label="Prediction", color="red")
-                    plt.legend()
-                    plt.title("Prediction vs Ground Truth")
+                        # Matplotlib으로 시각화
+                        plt.figure(figsize=(10, 5))
+                        plt.plot(gt, label="Ground Truth", color="blue")
+                        plt.plot(pd, label="Prediction", color="red")
+                        plt.legend()
+                        plt.title("Prediction vs Ground Truth")
 
-                    plt.show()
-                    plt.close()
+                        # 파일 저장
+                        img_path = os.path.join(folder_path, "final_batch_visualization.png")
+                        plt.savefig(img_path)
+                        plt.close()
+
+                        # ✅ WandB에 이미지 업로드
+                        wandb.log({"Final Batch Visualization": wandb.Image(img_path)})
 
         preds = np.array(preds)
         trues = np.array(trues)
         preds = preds.reshape(-1, preds.shape[-2], preds.shape[-1])
         trues = trues.reshape(-1, trues.shape[-2], trues.shape[-1])
-
 
         # result save
         folder_path = './results/' + setting + '/'
@@ -327,6 +335,17 @@ class Exp_Main_former(Exp_Basic_former):
             os.makedirs(folder_path)
 
         mae, mse, rmse, mape, mspe, d_stat = metric(preds, trues)
+
+        if self.final_run:
+            wandb.log({
+                "test_mae": mae,
+                "test_mse": mse,
+                "test_rmse": rmse,
+                "test_mape": mape,
+                "test_mspe": mspe,
+                "test_d_stat": d_stat
+            })
+
         print('mape:{:.4f}, mae:{:.2f}, d_stat:{:.2f}'.format(mape, mae, d_stat))
         f = open("result.txt", 'a')
         f.write(setting + "  \n")

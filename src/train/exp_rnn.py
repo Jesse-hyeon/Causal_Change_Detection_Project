@@ -12,6 +12,7 @@ import torch.optim as optim
 import warnings
 
 from utils.etc import EarlyStopping, adjust_learning_rate, metric
+import wandb
 
 ### data
 from train.data_custom_rnn import data_provider
@@ -55,8 +56,9 @@ class Exp_Basic_rnn(object):
 warnings.filterwarnings('ignore')
 
 class Exp_Main_rnn(Exp_Basic_rnn):
-    def __init__(self, config):
+    def __init__(self, config, final_run):
         super(Exp_Main_rnn, self).__init__(config)
+        self.final_run = final_run
 
     def _build_model(self):
         model_dict = {
@@ -249,21 +251,30 @@ class Exp_Main_rnn(Exp_Basic_rnn):
                 preds.append(pred_original)
                 trues.append(true_original)
 
-                # ✅ 20번째 배치마다 시각화 (원본 코드 유지)
-                if i % 20 == 0:
-                    input_original = test_data.inverse_transform(batch_x.detach().cpu().numpy()[0])
+                if self.final_run:
+                    if i % 20 == 0:
+                        input = batch_x.detach().cpu().numpy()
+                        input_y = input[0, :, -1].reshape(-1, 1)
+                        input_original = test_data.inverse_transform(input_y)
+                        input_original = input_original.reshape(-1)
 
-                    gt = np.concatenate((input_original[:, -1], true_original[0, :, -1]), axis=0)
-                    pd = np.concatenate((input_original[:, -1], pred_original[0, :, -1]), axis=0)
+                        gt = np.concatenate((input_original, true_original[0, :, -1]), axis=0)
+                        pd = np.concatenate((input_original, pred_original[0, :, -1]), axis=0)
 
-                    plt.figure(figsize=(10, 5))
-                    plt.plot(gt, label="Ground Truth", color="blue")
-                    plt.plot(pd, label="Prediction", color="red")
-                    plt.legend()
-                    plt.title("Prediction vs Ground Truth")
+                        # Matplotlib으로 시각화
+                        plt.figure(figsize=(10, 5))
+                        plt.plot(gt, label="Ground Truth", color="blue")
+                        plt.plot(pd, label="Prediction", color="red")
+                        plt.legend()
+                        plt.title("Prediction vs Ground Truth")
 
-                    plt.show()
-                    plt.close()
+                        # 파일 저장
+                        img_path = os.path.join(folder_path, "final_batch_visualization.png")
+                        plt.savefig(img_path)
+                        plt.close()
+
+                        # ✅ WandB에 이미지 업로드
+                        wandb.log({"Final Batch Visualization": wandb.Image(img_path)})
 
         preds = np.array(preds)
         trues = np.array(trues)
@@ -277,6 +288,17 @@ class Exp_Main_rnn(Exp_Basic_rnn):
             os.makedirs(folder_path)
 
         mae, mse, rmse, mape, mspe, d_stat = metric(preds, trues)
+
+        if self.final_run:
+            wandb.log({
+                "test_mae": mae,
+                "test_mse": mse,
+                "test_rmse": rmse,
+                "test_mape": mape,
+                "test_mspe": mspe,
+                "test_d_stat": d_stat
+            })
+
         print('mape:{:.4f}, mae:{:.2f}, d_stat:{:.2f}'.format(mape, mae, d_stat))
         f = open("result.txt", 'a')
         f.write(setting + "  \n")
