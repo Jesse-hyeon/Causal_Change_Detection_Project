@@ -1,36 +1,12 @@
 {
-    "feature_set": [
-        "date",
-        "Bonds_CHN_10Y",
-        "Bonds_CHN_1Y",
-        "Bonds_CHN_2Y",
-        "Bonds_CHN_5Y",
-        "Bonds_US_10Y",
-        "Bonds_US_1Y",
-        "Bonds_US_2Y",
-        "Bonds_US_3M",
-        "Com_BrentCrudeOil",
-        "Com_Gasoline",
-        "Com_Silver",
-        "EPU_GEPU_ppp",
-        "Stocks_CH50",
-        "Stocks_SHANGHAI",
-        "Stocks_US500",
-        "Stocks_USVIX",
-        "USD_AUD",
-        "USD_CNY",
-        "USD_DXY",
-        "Com_Gold"
-    ],
-
     "former_model" : ["transformer", "ns_transformer"],
     "rnn_model" : ["rnn", "lstm"],
 
-    "model": "lstm",
+    "model": "ns_transformer",
     "seed": 2021,
 
     "data": "custom",
-    "root_path": "/Users/choeseoheon/Desktop/Causal-Discovery/input/",
+    "root_path": "C:/Users/T-Lab_Public/PycharmProjects/Causal-Discovery/input/",
     "data_path": "DailyData.csv",
     "features": "MS",
     "target": "Com_Gold",
@@ -41,7 +17,7 @@
     "num_valid": 0,
     "num_train_original" : 2000,
     "num_valid_original" : 100,
-    "train_ratio" : 0.8,
+    "train_ratio" : 0.9,
     "test_ratio" : 0.1,
 
     "seq_len": 90,
@@ -74,9 +50,10 @@
     "lradj": "type1",
 
     "use_amp": false,
-    "use_gpu": false,
+    "use_gpu": true,
     "gpu": 0,
     "use_multi_gpu": false,
+    "use_wandb" : true,
 
     "p_hidden_dims": [
         128,

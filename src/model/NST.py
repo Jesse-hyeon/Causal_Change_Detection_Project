@@ -5,8 +5,8 @@ sys.path.append(os.path.abspath("src"))
 import torch
 import torch.nn as nn
 
-from utils.embed import DataEmbedding
-from utils.nsfomer_class import DSAttention, AttentionLayer, ConvLayer, EncoderLayer, Encoder, DecoderLayer, Decoder
+from src.utils.embed import DataEmbedding
+from src.utils.nsfomer_class import DSAttention, AttentionLayer, ConvLayer, EncoderLayer, Encoder, DecoderLayer, Decoder
 
 #########################################
 # Projector
