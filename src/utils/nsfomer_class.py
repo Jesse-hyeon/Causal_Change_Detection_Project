@@ -9,7 +9,7 @@ import torch.nn as nn
 from math import sqrt
 import torch.nn.functional as F
 
-from utils.etc import TriangularCausalMask
+from src.utils.etc import TriangularCausalMask
 
 #########################################
 # DSAttiontion

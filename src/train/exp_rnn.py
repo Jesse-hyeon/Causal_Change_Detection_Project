@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.optim as optim
 import warnings
 
-from utils.etc import EarlyStopping, adjust_learning_rate, metric
+from src.utils.etc import EarlyStopping, adjust_learning_rate, metric
 import wandb
 
 ### data
@@ -118,16 +118,18 @@ class Exp_Main_rnn(Exp_Basic_rnn):
 
     def train(self, setting):
         train_data, train_loader = self._get_data(flag='train')
-        vali_data, vali_loader = self._get_data(flag='val')
         test_data, test_loader = self._get_data(flag='test')
 
-        path = os.path.join(self.config["checkpoints"], setting)
-        if not os.path.exists(path):
-            os.makedirs(path)
+        # ✅ final_run이 아닌 경우에만 validation 데이터 로드 및 early stopping 준비
+        if not self.final_run:
+            vali_data, vali_loader = self._get_data(flag='val')
+            path = os.path.join(self.config["checkpoints"], setting)
+            if not os.path.exists(path):
+                os.makedirs(path)
+            early_stopping = EarlyStopping(patience=self.config["patience"], verbose=True)
 
         time_now = time.time()
         train_steps = len(train_loader)
-        early_stopping = EarlyStopping(patience=self.config["patience"], verbose=True)
 
         model_optim = self._select_optimizer()
         criterion = self._select_criterion()
@@ -148,19 +150,15 @@ class Exp_Main_rnn(Exp_Basic_rnn):
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
 
-                # ✅ 예측 수행
                 if self.config["use_amp"]:
                     with torch.cuda.amp.autocast():
                         outputs = self.model(batch_x)
                 else:
                     outputs = self.model(batch_x)
 
-                # ✅ feature type에 따른 차원 선택
                 f_dim = -1 if self.config["features"] == 'MS' else 0
-
                 outputs = outputs[:, -self.config["pred_len"]:, f_dim:]
-                batch_y = batch_y[:, -self.config["pred_len"]:, f_dim:].to(self.device)
-
+                batch_y = batch_y[:, -self.config["pred_len"]:, f_dim:]
 
                 loss = criterion(outputs, batch_y)
                 train_loss.append(loss.item())
@@ -173,7 +171,6 @@ class Exp_Main_rnn(Exp_Basic_rnn):
                     iter_count = 0
                     time_now = time.time()
 
-                # ✅ 역전파 및 가중치 업데이트 (순서 유지)
                 if self.config["use_amp"]:
                     scaler.scale(loss).backward()
                     scaler.step(model_optim)
@@ -182,27 +179,30 @@ class Exp_Main_rnn(Exp_Basic_rnn):
                     loss.backward()
                     model_optim.step()
 
-            # ✅ 원래 코드와 동일한 순서 유지
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
-            vali_loss = self.vali(vali_data, vali_loader, criterion)
-            test_loss = self.vali(test_data, test_loader, criterion)
 
-            print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
-                epoch + 1, train_steps, train_loss, vali_loss, test_loss))
+            if not self.final_run:
+                vali_loss = self.vali(vali_data, vali_loader, criterion)
+                test_loss = self.vali(test_data, test_loader, criterion)
+                print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
+                    epoch + 1, train_steps, train_loss, vali_loss, test_loss))
 
-            early_stopping(vali_loss, self.model, path)
-            if early_stopping.early_stop:
-                print("Early stopping")
-                break
+                early_stopping(vali_loss, self.model, path)
+                if early_stopping.early_stop:
+                    print("Early stopping")
+                    break
 
             adjust_learning_rate(model_optim, epoch + 1, self.config)
 
-        best_model_path = path + '/' + 'checkpoint.pth'
-        self.model.load_state_dict(torch.load(best_model_path))
+        # ✅ 최종 저장 로직: final_run일 경우 저장/로드 생략
+        if not self.final_run:
+            best_model_path = os.path.join(self.config["checkpoints"], setting, 'checkpoint.pth')
+            self.model.load_state_dict(torch.load(best_model_path))
+        else:
+            print("✅ final_run: checkpoint 저장 및 로드 생략")
 
         return self.model
-
 
     def test(self, setting, test=0):
         test_data, test_loader = self._get_data(flag='test')
@@ -253,7 +253,8 @@ class Exp_Main_rnn(Exp_Basic_rnn):
                 preds.append(pred_original)
                 trues.append(true_original)
 
-                if self.final_run:
+                # ✅ 이미지 시각화 및 로그
+                if self.final_run and self.config.get("use_wandb", False):
                     if i % 20 == 0:
                         input = batch_x.detach().cpu().numpy()
                         input_y = input[0, :, -1].reshape(-1, 1)
@@ -263,19 +264,16 @@ class Exp_Main_rnn(Exp_Basic_rnn):
                         gt = np.concatenate((input_original, true_original[0, :, -1]), axis=0)
                         pd = np.concatenate((input_original, pred_original[0, :, -1]), axis=0)
 
-                        # Matplotlib으로 시각화
                         plt.figure(figsize=(10, 5))
                         plt.plot(gt, label="Ground Truth", color="blue")
                         plt.plot(pd, label="Prediction", color="red")
                         plt.legend()
                         plt.title("Prediction vs Ground Truth")
 
-                        # 파일 저장
                         img_path = os.path.join(folder_path, "final_batch_visualization.png")
                         plt.savefig(img_path)
                         plt.close()
 
-                        # ✅ WandB에 이미지 업로드
                         wandb.log({"Final Batch Visualization": wandb.Image(img_path)})
 
         preds = np.array(preds)
@@ -291,7 +289,7 @@ class Exp_Main_rnn(Exp_Basic_rnn):
 
         mae, mse, rmse, mape, mspe, d_stat = metric(preds, trues)
 
-        if self.final_run:
+        if self.final_run and self.config.get("use_wandb", False):
             wandb.log({
                 "test_mae": mae,
                 "test_mse": mse,

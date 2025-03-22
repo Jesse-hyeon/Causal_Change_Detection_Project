@@ -2,9 +2,9 @@
     "feature_set": [],
 
     "former_model" : ["transformer", "ns_transformer"],
-    "rnn_model" : ["rnn", "lstm", "mlp"],
+    "rnn_model" : ["rnn", "lstm"],
 
-    "model": "mlp",
+    "model": "ns_transformer",
     "seed": 2021,
 
     "data": "custom",

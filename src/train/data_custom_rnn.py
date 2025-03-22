@@ -58,7 +58,8 @@ class Dataset_Custom(Dataset):
 
         # 👀수정 후
         num_train = self.num_train
-        num_test = int(len(df_raw) * 0.1)
+        # num_test = int(len(df_raw) * 0.1)
+        num_test = 90
         num_vali = self.num_valid
 
         border1s = [0, num_train - self.seq_len, len(df_raw) - num_test - self.seq_len]

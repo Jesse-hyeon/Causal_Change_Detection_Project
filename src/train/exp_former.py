@@ -13,7 +13,7 @@ import warnings
 
 import wandb
 
-from utils.etc import EarlyStopping, adjust_learning_rate, metric
+from src.utils.etc import EarlyStopping, adjust_learning_rate, metric
 
 ### data
 from train.data_custom_former import data_provider
@@ -128,14 +128,18 @@ class Exp_Main_former(Exp_Basic_former):
         return total_loss
 
     def train(self, setting):
-        print("start training")
         train_data, train_loader = self._get_data(flag='train')
-        vali_data, vali_loader = self._get_data(flag='val')
         test_data, test_loader = self._get_data(flag='test')
 
-        path = os.path.join(self.config["checkpoints"], setting)
-        if not os.path.exists(path):
-            os.makedirs(path)
+        print("start training")
+
+        # ✅ final_run이 아닌 경우에만 validation 데이터 로드 및 early stopping 준비
+        if not self.final_run:
+            vali_data, vali_loader = self._get_data(flag='val')
+            path = os.path.join(self.config["checkpoints"], setting)
+            if not os.path.exists(path):
+                os.makedirs(path)
+            early_stopping = EarlyStopping(patience=self.config["patience"], verbose=True)
 
         time_now = time.time()
 
@@ -215,20 +219,26 @@ class Exp_Main_former(Exp_Basic_former):
             # 조기 종료 및 학습률 조정
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
-            vali_loss = self.vali(vali_data, vali_loader, criterion)
-            test_loss = self.vali(test_data, test_loader, criterion)
 
-            print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
-                epoch + 1, train_steps, train_loss, vali_loss, test_loss))
-            early_stopping(vali_loss, self.model, path)
-            if early_stopping.early_stop:
-                print("Early stopping")
-                break
+            if not self.final_run:
+                vali_loss = self.vali(vali_data, vali_loader, criterion)
+                test_loss = self.vali(test_data, test_loader, criterion)
+                print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
+                    epoch + 1, train_steps, train_loss, vali_loss, test_loss))
+
+                early_stopping(vali_loss, self.model, path)
+                if early_stopping.early_stop:
+                    print("Early stopping")
+                    break
 
             adjust_learning_rate(model_optim, epoch + 1, self.config)
 
-        best_model_path = path + '/' + 'checkpoint.pth'
-        self.model.load_state_dict(torch.load(best_model_path))
+        # ✅ 최종 저장 로직: final_run일 경우 저장/로드 생략
+        if not self.final_run:
+            best_model_path = os.path.join(self.config["checkpoints"], setting, 'checkpoint.pth')
+            self.model.load_state_dict(torch.load(best_model_path))
+        else:
+            print("✅ final_run: checkpoint 저장 및 로드 생략")
 
         return self.model
 

@@ -5,8 +5,8 @@ sys.path.append(os.path.abspath("utils"))
 import torch
 import torch.nn as nn
 
-from utils.embed import DataEmbedding
-from utils.former_class import FullAttention, AttentionLayer, ConvLayer, EncoderLayer, Encoder, DecoderLayer, Decoder
+from src.utils.embed import DataEmbedding
+from src.utils.former_class import FullAttention, AttentionLayer, ConvLayer, EncoderLayer, Encoder, DecoderLayer, Decoder
 
 #########################################
 # Model
