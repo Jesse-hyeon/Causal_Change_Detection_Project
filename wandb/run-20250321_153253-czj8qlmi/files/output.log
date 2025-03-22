@@ -1,0 +1,90 @@
+[I 2025-03-21 15:32:54,585] A new study created in memory with name: no-name-ee8c158c-1403-4103-a7a5-32b29c21cdd4
+--- TS-CV Fold 1/2 ---
+Use CPU
+train 1889
+val 1
+test 192
+[W 2025-03-21 15:32:54,635] Trial 0 failed with parameters: {'d_model': 768, 'n_heads': 4, 'e_layers': 2, 'd_layers': 3, 'd_ff': 4096, 'dropout': 0.011045091976592258, 'batch_size': 64, 'activation': 'gelu'} because of the following error: ValueError('optimizer got an empty parameter list').
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 197, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 128, in objective
+    val_loss = self._run_trial(args)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 94, in _run_trial
+    fold_loss = self._train_and_evaluate(fold_args, setting=f"trial_fold_{fold_id}")
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 63, in _train_and_evaluate
+    trainer_initial.train(setting=setting)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 132, in train
+    model_optim = self._select_optimizer()
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 80, in _select_optimizer
+    model_optim = optim.Adam(self.model.parameters(), lr=self.config["learning_rate"])
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/torch/optim/adam.py", line 99, in __init__
+    super().__init__(params, defaults)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/torch/optim/optimizer.py", line 372, in __init__
+    raise ValueError("optimizer got an empty parameter list")
+ValueError: optimizer got an empty parameter list
+[W 2025-03-21 15:32:54,635] Trial 0 failed with value None.
+Traceback (most recent call last):
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/main.py", line 120, in <module>
+    run(base_config)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/main.py", line 111, in run
+    tuner.run_study()
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 136, in run_study
+    study.optimize(self.objective, n_trials=self.n_trials)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/study.py", line 475, in optimize
+    _optimize(
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 63, in _optimize
+    _optimize_sequential(
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 160, in _optimize_sequential
+    frozen_trial = _run_trial(study, func, catch)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 248, in _run_trial
+    raise func_err
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 197, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 128, in objective
+    val_loss = self._run_trial(args)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 94, in _run_trial
+    fold_loss = self._train_and_evaluate(fold_args, setting=f"trial_fold_{fold_id}")
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 63, in _train_and_evaluate
+    trainer_initial.train(setting=setting)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 132, in train
+    model_optim = self._select_optimizer()
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 80, in _select_optimizer
+    model_optim = optim.Adam(self.model.parameters(), lr=self.config["learning_rate"])
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/torch/optim/adam.py", line 99, in __init__
+    super().__init__(params, defaults)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/torch/optim/optimizer.py", line 372, in __init__
+    raise ValueError("optimizer got an empty parameter list")
+ValueError: optimizer got an empty parameter list
+Traceback (most recent call last):
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/main.py", line 120, in <module>
+    run(base_config)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/main.py", line 111, in run
+    tuner.run_study()
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 136, in run_study
+    study.optimize(self.objective, n_trials=self.n_trials)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/study.py", line 475, in optimize
+    _optimize(
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 63, in _optimize
+    _optimize_sequential(
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 160, in _optimize_sequential
+    frozen_trial = _run_trial(study, func, catch)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 248, in _run_trial
+    raise func_err
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 197, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 128, in objective
+    val_loss = self._run_trial(args)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 94, in _run_trial
+    fold_loss = self._train_and_evaluate(fold_args, setting=f"trial_fold_{fold_id}")
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 63, in _train_and_evaluate
+    trainer_initial.train(setting=setting)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 132, in train
+    model_optim = self._select_optimizer()
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 80, in _select_optimizer
+    model_optim = optim.Adam(self.model.parameters(), lr=self.config["learning_rate"])
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/torch/optim/adam.py", line 99, in __init__
+    super().__init__(params, defaults)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/torch/optim/optimizer.py", line 372, in __init__
+    raise ValueError("optimizer got an empty parameter list")
+ValueError: optimizer got an empty parameter list

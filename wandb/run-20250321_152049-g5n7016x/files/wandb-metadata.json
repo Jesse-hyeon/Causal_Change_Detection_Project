@@ -1,0 +1,16 @@
+{
+  "os": "macOS-15.3.2-arm64-arm-64bit",
+  "python": "CPython 3.10.16",
+  "startedAt": "2025-03-21T06:20:49.651250Z",
+  "program": "/Users/choeseoheon/Desktop/Causal-Discovery/main.py",
+  "codePath": "main.py",
+  "git": {
+    "remote": "https://github.com/dawndew430/Causal-Discovery.git",
+    "commit": "7bda47feb4e69c47f867bc0a5bb7730c204697d2"
+  },
+  "email": "22100733@handong.ac.kr",
+  "root": "/Users/choeseoheon/Desktop/Causal-Discovery",
+  "host": "choeseoheon-ui-MacBookPro.local",
+  "executable": "/opt/anaconda3/envs/capstone/bin/python",
+  "codePathLocal": "main.py"
+}

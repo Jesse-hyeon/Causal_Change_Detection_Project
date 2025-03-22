@@ -19,6 +19,7 @@ from train.data_custom_rnn import data_provider
 
 ### Model
 from model.LSTM import lstm_model
+from model.MLP import mlp_model
 
 class Exp_Basic_rnn(object):
     def __init__(self, config):
@@ -62,7 +63,8 @@ class Exp_Main_rnn(Exp_Basic_rnn):
 
     def _build_model(self):
         model_dict = {
-            'lstm': lstm_model
+            'lstm': lstm_model,
+            'mlp': mlp_model
         }
         model = model_dict[self.config["model"]](self.config).float()
 

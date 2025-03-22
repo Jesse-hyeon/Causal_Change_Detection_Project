@@ -1,0 +1,87 @@
+[I 2025-03-21 15:22:55,926] A new study created in memory with name: no-name-a1ab2893-4676-48d1-bec8-0ea702cb3088
+--- TS-CV Fold 1/2 ---
+Use CPU
+[W 2025-03-21 15:22:55,927] Trial 0 failed with parameters: {'d_model': 768, 'n_heads': 12, 'e_layers': 2, 'd_layers': 3, 'd_ff': 2560, 'dropout': 0.27470357300081893, 'batch_size': 32, 'activation': 'relu'} because of the following error: TypeError("'NoneType' object is not subscriptable").
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 197, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 128, in objective
+    val_loss = self._run_trial(args)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 94, in _run_trial
+    fold_loss = self._train_and_evaluate(fold_args, setting=f"trial_fold_{fold_id}")
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 62, in _train_and_evaluate
+    trainer_initial = Exp_Main_rnn(args, final_run=False)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 61, in __init__
+    super(Exp_Main_rnn, self).__init__(config)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 28, in __init__
+    self.model = self._build_model().to(self.device)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 69, in _build_model
+    model = model_dict[self.config["model"]](self.config).float()
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/model/MLP.py", line 16, in __init__
+    self.pred_len = configs["pred_len"]
+TypeError: 'NoneType' object is not subscriptable
+[W 2025-03-21 15:22:55,928] Trial 0 failed with value None.
+Traceback (most recent call last):
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/main.py", line 120, in <module>
+    run(base_config)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/main.py", line 111, in run
+    tuner.run_study()
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 136, in run_study
+    study.optimize(self.objective, n_trials=self.n_trials)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/study.py", line 475, in optimize
+    _optimize(
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 63, in _optimize
+    _optimize_sequential(
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 160, in _optimize_sequential
+    frozen_trial = _run_trial(study, func, catch)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 248, in _run_trial
+    raise func_err
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 197, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 128, in objective
+    val_loss = self._run_trial(args)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 94, in _run_trial
+    fold_loss = self._train_and_evaluate(fold_args, setting=f"trial_fold_{fold_id}")
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 62, in _train_and_evaluate
+    trainer_initial = Exp_Main_rnn(args, final_run=False)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 61, in __init__
+    super(Exp_Main_rnn, self).__init__(config)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 28, in __init__
+    self.model = self._build_model().to(self.device)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 69, in _build_model
+    model = model_dict[self.config["model"]](self.config).float()
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/model/MLP.py", line 16, in __init__
+    self.pred_len = configs["pred_len"]
+TypeError: 'NoneType' object is not subscriptable
+Traceback (most recent call last):
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/main.py", line 120, in <module>
+    run(base_config)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/main.py", line 111, in run
+    tuner.run_study()
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 136, in run_study
+    study.optimize(self.objective, n_trials=self.n_trials)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/study.py", line 475, in optimize
+    _optimize(
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 63, in _optimize
+    _optimize_sequential(
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 160, in _optimize_sequential
+    frozen_trial = _run_trial(study, func, catch)
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 248, in _run_trial
+    raise func_err
+  File "/opt/anaconda3/envs/capstone/lib/python3.10/site-packages/optuna/study/_optimize.py", line 197, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 128, in objective
+    val_loss = self._run_trial(args)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 94, in _run_trial
+    fold_loss = self._train_and_evaluate(fold_args, setting=f"trial_fold_{fold_id}")
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/optuna.py", line 62, in _train_and_evaluate
+    trainer_initial = Exp_Main_rnn(args, final_run=False)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 61, in __init__
+    super(Exp_Main_rnn, self).__init__(config)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 28, in __init__
+    self.model = self._build_model().to(self.device)
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/train/exp_rnn.py", line 69, in _build_model
+    model = model_dict[self.config["model"]](self.config).float()
+  File "/Users/choeseoheon/Desktop/Causal-Discovery/src/model/MLP.py", line 16, in __init__
+    self.pred_len = configs["pred_len"]
+TypeError: 'NoneType' object is not subscriptable

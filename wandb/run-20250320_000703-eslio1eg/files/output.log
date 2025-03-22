@@ -1,0 +1,218 @@
+[I 2025-03-20 00:07:04,146] A new study created in memory with name: no-name-9da664fb-d864-486e-a643-1c08afb1658e
+--- TS-CV Fold 1/2 ---
+Use CPU
+train 1889
+val 1
+test 192
+Epoch: 1 cost time: 1.306535005569458
+Epoch: 1, Steps: 29 | Train Loss: 0.9217236 Vali Loss: 6.3655977 Test Loss: 9.0952067
+Validation loss decreased (inf --> 6.365598).  Saving model ...
+Updating learning rate to 0.0001
+Epoch: 2 cost time: 1.2173218727111816
+Epoch: 2, Steps: 29 | Train Loss: 0.6898033 Vali Loss: 5.1634378 Test Loss: 7.5326557
+Validation loss decreased (6.365598 --> 5.163438).  Saving model ...
+Updating learning rate to 5e-05
+Epoch: 3 cost time: 1.329240083694458
+Epoch: 3, Steps: 29 | Train Loss: 0.6451743 Vali Loss: 4.8305321 Test Loss: 7.0753818
+Validation loss decreased (5.163438 --> 4.830532).  Saving model ...
+Updating learning rate to 2.5e-05
+Epoch: 4 cost time: 1.4132962226867676
+Epoch: 4, Steps: 29 | Train Loss: 0.6157287 Vali Loss: 4.6841307 Test Loss: 6.8757705
+Validation loss decreased (4.830532 --> 4.684131).  Saving model ...
+Updating learning rate to 1.25e-05
+Epoch: 5 cost time: 1.3875586986541748
+Epoch: 5, Steps: 29 | Train Loss: 0.6001137 Vali Loss: 4.6105771 Test Loss: 6.7769823
+Validation loss decreased (4.684131 --> 4.610577).  Saving model ...
+Updating learning rate to 6.25e-06
+val 1
+Fold 1 validation loss: 4.6106
+--- TS-CV Fold 2/2 ---
+Use CPU
+train 1979
+val 1
+test 192
+Epoch: 1 cost time: 1.5407078266143799
+Epoch: 1, Steps: 30 | Train Loss: 1.0143793 Vali Loss: 4.7598696 Test Loss: 8.1544806
+Validation loss decreased (inf --> 4.759870).  Saving model ...
+Updating learning rate to 0.0001
+Epoch: 2 cost time: 1.4584290981292725
+Epoch: 2, Steps: 30 | Train Loss: 0.7445105 Vali Loss: 3.8537354 Test Loss: 6.7624551
+Validation loss decreased (4.759870 --> 3.853735).  Saving model ...
+Updating learning rate to 5e-05
+Epoch: 3 cost time: 1.5205891132354736
+Epoch: 3, Steps: 30 | Train Loss: 0.6876094 Vali Loss: 3.5765114 Test Loss: 6.3234717
+Validation loss decreased (3.853735 --> 3.576511).  Saving model ...
+Updating learning rate to 2.5e-05
+Epoch: 4 cost time: 1.5379810333251953
+Epoch: 4, Steps: 30 | Train Loss: 0.6527322 Vali Loss: 3.4554052 Test Loss: 6.1346082
+Validation loss decreased (3.576511 --> 3.455405).  Saving model ...
+Updating learning rate to 1.25e-05
+Epoch: 5 cost time: 1.4896409511566162
+Epoch: 5, Steps: 30 | Train Loss: 0.6340301 Vali Loss: 3.3956194 Test Loss: 6.0431420
+Validation loss decreased (3.455405 --> 3.395619).  Saving model ...
+Updating learning rate to 6.25e-06
+val 1
+Fold 2 validation loss: 3.3956
+Average validation loss over 2 folds: 4.0031
+[I 2025-03-20 00:07:21,728] Trial 0 finished with value: 4.003098249435425 and parameters: {'d_model': 768, 'n_heads': 2, 'e_layers': 3, 'd_layers': 1, 'd_ff': 1536, 'dropout': 0.18886411961549854, 'batch_size': 64, 'activation': 'gelu'}. Best is trial 0 with value: 4.003098249435425.
+--- TS-CV Fold 1/2 ---
+Use CPU
+train 1889
+val 1
+test 192
+	iters: 100, epoch: 1 | loss: 0.6312735
+	speed: 0.0216s/iter; left time: 10.6129s
+Epoch: 1 cost time: 2.5665998458862305
+Epoch: 1, Steps: 118 | Train Loss: 0.4340312 Vali Loss: 1.1067526 Test Loss: 2.7199423
+Validation loss decreased (inf --> 1.106753).  Saving model ...
+Updating learning rate to 0.0001
+	iters: 100, epoch: 2 | loss: 0.2111299
+	speed: 0.0280s/iter; left time: 10.4502s
+Epoch: 2 cost time: 2.6054861545562744
+Epoch: 2, Steps: 118 | Train Loss: 0.5580049 Vali Loss: 1.1014528 Test Loss: 1.4666327
+Validation loss decreased (1.106753 --> 1.101453).  Saving model ...
+Updating learning rate to 5e-05
+	iters: 100, epoch: 3 | loss: 0.1238605
+	speed: 0.0310s/iter; left time: 7.8945s
+Epoch: 3 cost time: 2.629279851913452
+Epoch: 3, Steps: 118 | Train Loss: 0.4079395 Vali Loss: 0.8945046 Test Loss: 0.9911493
+Validation loss decreased (1.101453 --> 0.894505).  Saving model ...
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 4 | loss: 0.2224058
+	speed: 0.0289s/iter; left time: 3.9617s
+Epoch: 4 cost time: 2.608980894088745
+Epoch: 4, Steps: 118 | Train Loss: 0.2491787 Vali Loss: 0.8037433 Test Loss: 1.0620303
+Validation loss decreased (0.894505 --> 0.803743).  Saving model ...
+Updating learning rate to 1.25e-05
+	iters: 100, epoch: 5 | loss: 0.1827201
+	speed: 0.0277s/iter; left time: 0.5263s
+Epoch: 5 cost time: 2.4771921634674072
+Epoch: 5, Steps: 118 | Train Loss: 0.1997357 Vali Loss: 0.7340893 Test Loss: 1.0913790
+Validation loss decreased (0.803743 --> 0.734089).  Saving model ...
+Updating learning rate to 6.25e-06
+val 1
+Fold 1 validation loss: 0.7341
+--- TS-CV Fold 2/2 ---
+Use CPU
+train 1979
+val 1
+test 192
+	iters: 100, epoch: 1 | loss: 0.5687850
+	speed: 0.0207s/iter; left time: 10.6832s
+Epoch: 1 cost time: 2.575782060623169
+Epoch: 1, Steps: 123 | Train Loss: 0.4070300 Vali Loss: 0.5039247 Test Loss: 1.1009845
+Validation loss decreased (inf --> 0.503925).  Saving model ...
+Updating learning rate to 0.0001
+	iters: 100, epoch: 2 | loss: 0.1322930
+	speed: 0.0302s/iter; left time: 11.8836s
+Epoch: 2 cost time: 2.730525016784668
+Epoch: 2, Steps: 123 | Train Loss: 0.4994033 Vali Loss: 0.7674443 Test Loss: 0.5191259
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 5e-05
+	iters: 100, epoch: 3 | loss: 0.1035556
+	speed: 0.0318s/iter; left time: 8.5810s
+Epoch: 3 cost time: 3.151588201522827
+Epoch: 3, Steps: 123 | Train Loss: 0.3678476 Vali Loss: 1.7684587 Test Loss: 0.6472776
+EarlyStopping counter: 2 out of 3
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 4 | loss: 0.2821865
+	speed: 0.0312s/iter; left time: 4.5822s
+Epoch: 4 cost time: 2.6116108894348145
+Epoch: 4, Steps: 123 | Train Loss: 0.2134109 Vali Loss: 2.2821612 Test Loss: 0.9167429
+EarlyStopping counter: 3 out of 3
+Early stopping
+val 1
+Fold 2 validation loss: 0.5039
+Average validation loss over 2 folds: 0.6190
+[I 2025-03-20 00:07:48,480] Trial 1 finished with value: 0.6190069913864136 and parameters: {'d_model': 1024, 'n_heads': 12, 'e_layers': 1, 'd_layers': 3, 'd_ff': 2048, 'dropout': 0.07386205725009659, 'batch_size': 16, 'activation': 'gelu'}. Best is trial 1 with value: 0.6190069913864136.
+--- TS-CV Fold 1/2 ---
+Use CPU
+train 1889
+val 1
+test 192
+Epoch: 1 cost time: 1.8139338493347168
+Epoch: 1, Steps: 59 | Train Loss: 0.8760827 Vali Loss: 4.7652750 Test Loss: 6.6210558
+Validation loss decreased (inf --> 4.765275).  Saving model ...
+Updating learning rate to 0.0001
+Epoch: 2 cost time: 1.7320258617401123
+Epoch: 2, Steps: 59 | Train Loss: 0.8536966 Vali Loss: 4.1212692 Test Loss: 5.6360328
+Validation loss decreased (4.765275 --> 4.121269).  Saving model ...
+Updating learning rate to 5e-05
+Epoch: 3 cost time: 1.7927687168121338
+Epoch: 3, Steps: 59 | Train Loss: 0.6444931 Vali Loss: 3.5651455 Test Loss: 5.0486914
+Validation loss decreased (4.121269 --> 3.565145).  Saving model ...
+Updating learning rate to 2.5e-05
+Epoch: 4 cost time: 1.8607470989227295
+Epoch: 4, Steps: 59 | Train Loss: 0.5600648 Vali Loss: 3.2391663 Test Loss: 4.7215179
+Validation loss decreased (3.565145 --> 3.239166).  Saving model ...
+Updating learning rate to 1.25e-05
+Epoch: 5 cost time: 1.8684098720550537
+Epoch: 5, Steps: 59 | Train Loss: 0.5162872 Vali Loss: 3.0611594 Test Loss: 4.5480635
+Validation loss decreased (3.239166 --> 3.061159).  Saving model ...
+Updating learning rate to 6.25e-06
+val 1
+Fold 1 validation loss: 3.0612
+--- TS-CV Fold 2/2 ---
+Use CPU
+train 1979
+val 1
+test 192
+Epoch: 1 cost time: 2.063370943069458
+Epoch: 1, Steps: 61 | Train Loss: 0.9240502 Vali Loss: 3.5383823 Test Loss: 5.4261229
+Validation loss decreased (inf --> 3.538382).  Saving model ...
+Updating learning rate to 0.0001
+Epoch: 2 cost time: 2.1897332668304443
+Epoch: 2, Steps: 61 | Train Loss: 0.7538567 Vali Loss: 2.9239545 Test Loss: 4.5772355
+Validation loss decreased (3.538382 --> 2.923954).  Saving model ...
+Updating learning rate to 5e-05
+Epoch: 3 cost time: 1.9321520328521729
+Epoch: 3, Steps: 61 | Train Loss: 0.5438601 Vali Loss: 2.5099142 Test Loss: 4.1532927
+Validation loss decreased (2.923954 --> 2.509914).  Saving model ...
+Updating learning rate to 2.5e-05
+Epoch: 4 cost time: 1.8377397060394287
+Epoch: 4, Steps: 61 | Train Loss: 0.4420496 Vali Loss: 2.2508290 Test Loss: 3.9014841
+Validation loss decreased (2.509914 --> 2.250829).  Saving model ...
+Updating learning rate to 1.25e-05
+Epoch: 5 cost time: 1.758249044418335
+Epoch: 5, Steps: 61 | Train Loss: 0.3905886 Vali Loss: 2.1066809 Test Loss: 3.7653435
+Validation loss decreased (2.250829 --> 2.106681).  Saving model ...
+Updating learning rate to 6.25e-06
+val 1
+Fold 2 validation loss: 2.1067
+Average validation loss over 2 folds: 2.5839
+[I 2025-03-20 00:08:10,437] Trial 2 finished with value: 2.583920121192932 and parameters: {'d_model': 768, 'n_heads': 16, 'e_layers': 3, 'd_layers': 3, 'd_ff': 1536, 'dropout': 0.39728197614534905, 'batch_size': 32, 'activation': 'gelu'}. Best is trial 1 with value: 0.6190069913864136.
+Best hyperparameters: {'d_model': 1024, 'n_heads': 12, 'e_layers': 1, 'd_layers': 3, 'd_ff': 2048, 'dropout': 0.07386205725009659, 'batch_size': 16, 'activation': 'gelu'}
+Final training model
+Use CPU
+train 2069
+val 192
+test 192
+	iters: 100, epoch: 1 | loss: 0.5234273
+	speed: 0.0290s/iter; left time: 15.8448s
+Epoch: 1 cost time: 3.5798656940460205
+Epoch: 1, Steps: 129 | Train Loss: 0.3511184 Vali Loss: 0.2197647 Test Loss: 0.4331261
+Validation loss decreased (inf --> 0.219765).  Saving model ...
+Updating learning rate to 0.0001
+	iters: 100, epoch: 2 | loss: 0.1214964
+	speed: 0.0363s/iter; left time: 15.1373s
+Epoch: 2 cost time: 3.2163288593292236
+Epoch: 2, Steps: 129 | Train Loss: 0.4417844 Vali Loss: 0.2784415 Test Loss: 0.2216793
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 5e-05
+	iters: 100, epoch: 3 | loss: 0.1103037
+	speed: 0.0375s/iter; left time: 10.8089s
+Epoch: 3 cost time: 3.091063976287842
+Epoch: 3, Steps: 129 | Train Loss: 0.3665949 Vali Loss: 0.8944502 Test Loss: 0.5628819
+EarlyStopping counter: 2 out of 3
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 4 | loss: 0.2515108
+	speed: 0.0371s/iter; left time: 5.8947s
+Epoch: 4 cost time: 3.073091745376587
+Epoch: 4, Steps: 129 | Train Loss: 0.2000551 Vali Loss: 0.8580679 Test Loss: 0.8579757
+EarlyStopping counter: 3 out of 3
+Early stopping
+test 192
+preds shape:  (192, 1, 90, 1)
+trues shape:  (192, 1, 90, 1)
+mape:0.0683, mae:133.48, d_stat:45.80
+Final model training and testing complete.

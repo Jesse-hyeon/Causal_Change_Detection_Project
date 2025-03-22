@@ -10,9 +10,12 @@ import wandb
 
 import torch
 
+from causal_discovery.Lasso import lasso_model
+
 from train.exp_former import Exp_Main_former
 from train.exp_rnn import Exp_Main_rnn
 from train.optuna import HyperParameterTuner
+
 
 ### config(JSON 파일) 불러오기
 config_path = "/Users/choeseoheon/Desktop/Causal-Discovery/src/Arg/config.json"
@@ -21,6 +24,7 @@ with open(config_path, "r") as f:
 
 ### 데이터 관련 정보 저장
 raw_data = pd.read_csv(os.path.join(base_config["root_path"], base_config["data_path"]))
+print("len feature : ", len(raw_data.columns))
 
 # 최종 실험에 사용할 train, test, valid 길이 반환
 num_train_original = int(len(raw_data) * base_config["train_ratio"])
@@ -72,19 +76,17 @@ feature_sets = {
 }
 
 ### 인과 발견, 모델 리스트
-causal_discovery_list = ["Lasso", "PCMCI", "NBCB"]
-model_list = ["lstm", "transformer", "ns_transformer"]
+causal_discovery_list = ["NBCB"]
+model_list = ["mlp"]
 
-### 최종 실험 함수
 ### 최종 실험 함수
 def run(config):
     for model_name in model_list:
         config["model"] = model_name
-        print("\n" + "=" * 50)
-        print(f"🚀 [ Running Experiment ] - Model: {model_name}")
-        print("=" * 50 + "\n")
-
         for cd_name in causal_discovery_list:
+            print("\n" + "=" * 50)
+            print(f"🚀 [ Running Experiment ] - Model: {model_name}")
+            print("=" * 50 + "\n")
             print("-" * 50)
             print(f"🔍 Causal Discovery Method: {cd_name}")
             print("-" * 50)
@@ -109,7 +111,7 @@ def run(config):
                 len_in_rnn = len(config["feature_set"]) - 1 + 3  # 미래공변량 피처 더하기
                 config["enc_in"] = len_in_rnn
                 config["dec_in"] = len_in_rnn
-                tuner = HyperParameterTuner(config, param_ranges, n_splits=1, n_trials=1)
+                tuner = HyperParameterTuner(config, param_ranges, n_splits=2, n_trials=2)
                 tuner.run_study()
                 tuner.train_final_model()
 
@@ -118,5 +120,31 @@ def run(config):
 
 
 if __name__ == '__main__':
-    base_config["wandb_project"] = "test"
-    run(base_config)
+    # base_config["wandb_project"] = "test1"
+    # run(base_config)
+    # 데이터 준비
+    data = raw_data.iloc[:-90, :]
+
+    X = data.drop(columns='Com_Gold')
+    y = data['Com_Gold']
+
+    test_size = 90
+    X_train, X_test = X[:-test_size], X[-test_size:]
+    y_train, y_test = y[:-test_size], y[-test_size:]
+
+    # 클래스 사용
+    lasso_model = lasso_model(alpha=0.1)
+    lasso_model.fit(X_train, y_train)
+
+    # 평가
+    rmse = lasso_model.evaluate(X_test, y_test)
+    print("RMSE:", rmse)
+
+    # 선택된 feature 확인
+    selected_features = lasso_model.get_selected_features()
+    print("Selected features:", selected_features)
+    print("len of selected features:", len(selected_features))
+
+    # 계수 확인
+    coefficients = lasso_model.get_coefficients()
+    print(coefficients[coefficients != 0])
