@@ -1,7 +1,7 @@
 {
     "feature_set": [],
 
-    "former_model" : ["transformer", "ns_transformer"],
+    "former_model" : ["transformer", "ns_transformer", "ns_informer", "ns_autoformer"],
     "rnn_model" : ["rnn", "lstm"],
 
     "model": "ns_transformer",
@@ -9,7 +9,8 @@
 
     "data": "custom",
     "root_path": "/Users/choeseoheon/Desktop/Causal-Discovery/input/",
-    "data_path": "DailyData.csv",
+    "data_path": "Data_Daily_250313.csv",
+    "train_data_path" : "train_len.csv",
     "features": "MS",
     "target": "Com_Gold",
     "freq": "b",
@@ -39,6 +40,8 @@
     "activation": "gelu",
     "output_attention": false,
     "factor": 1,
+    "moving_avg" : 25,
+    "distil" : true,
 
     "num_layers" : 1,
     "hidden_size" : 256,
@@ -55,6 +58,7 @@
     "use_gpu": false,
     "gpu": 0,
     "use_multi_gpu": false,
+    "use_wandb" : false,
 
     "p_hidden_dims": [
         128,

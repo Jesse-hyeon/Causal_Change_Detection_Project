@@ -63,8 +63,7 @@ class Exp_Main_rnn(Exp_Basic_rnn):
 
     def _build_model(self):
         model_dict = {
-            'lstm': lstm_model,
-            'mlp': mlp_model
+            'lstm': lstm_model
         }
         model = model_dict[self.config["model"]](self.config).float()
 

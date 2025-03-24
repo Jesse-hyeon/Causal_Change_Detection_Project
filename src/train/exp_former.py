@@ -1,6 +1,5 @@
 import sys
 import os
-sys.path.append(os.path.abspath("src"))
 
 import numpy as np
 import time
@@ -16,11 +15,13 @@ import wandb
 from src.utils.etc import EarlyStopping, adjust_learning_rate, metric
 
 ### data
-from train.data_custom_former import data_provider
+from src.train.data_custom_former import data_provider
 
 ### Model
-from model.NST import ns_transformer_model
-from model.Transformer import transformer_model
+from src.model.NST import ns_transformer_model
+from src.model.Transformer import transformer_model
+from src.model.NSI import ns_informer_model
+from src.model.NSA import ns_autoformer_model
 
 class Exp_Basic_former(object):
     def __init__(self, config):
@@ -67,7 +68,9 @@ class Exp_Main_former(Exp_Basic_former):
     def _build_model(self):
         model_dict = {
             'ns_transformer': ns_transformer_model,
-            'transformer': transformer_model
+            'transformer': transformer_model,
+            'ns_informer': ns_informer_model,
+            'ns_autoformer': ns_autoformer_model
         }
         model = model_dict[self.config["model"]](self.config).float()
 

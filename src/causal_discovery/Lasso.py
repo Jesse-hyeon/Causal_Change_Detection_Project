@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error
 
-class lasso_model:
+class lasso_model():
     def __init__(self, alpha=0.1, max_iter=10000):
         self.alpha = alpha
         self.max_iter = max_iter
@@ -20,7 +20,6 @@ class lasso_model:
             X['month'] = X['date'].dt.month
             X['dayofweek'] = X['date'].dt.dayofweek
             X = X.drop(columns='date')  # 원래 date는 제거
-            X = X.drop(columns='Month')
         return X
 
     def fit(self, X_train, y_train):

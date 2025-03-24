@@ -1,9 +1,9 @@
 import sys
 import os
-sys.path.append(os.path.abspath("src"))
 
 import torch
 import torch.nn as nn
+import math
 from math import sqrt
 import torch.nn.functional as F
 
@@ -79,7 +79,7 @@ class AttentionLayer(nn.Module):
         out = out.view(B, L, -1)
 
         return self.out_projection(out), attn
-### 4) Layer
+
 #########################################
 # ConvLayer
 #########################################
@@ -102,7 +102,8 @@ class ConvLayer(nn.Module):
         x = self.maxPool(x)
         x = x.transpose(1, 2)
         return x
-### 5) Encoder
+
+
 #########################################
 # Encoder
 #########################################
@@ -158,7 +159,7 @@ class Encoder(nn.Module):
             x = self.norm(x)
 
         return x, attns
-### 6) Decoder
+
 #########################################
 # Decoder
 #########################################
