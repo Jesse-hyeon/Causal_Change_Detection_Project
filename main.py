@@ -72,7 +72,7 @@ feature_sets = {
 
 ### 인과 발견, 모델 리스트
 causal_discovery_list = ["Lasso"]
-model_list = ["ns_informer"]
+model_list = ["mlp"]
 
 def run_causal_discovery(config):
     data = pd.read_csv(os.path.join(config["root_path"], config["train_data_path"]))
@@ -130,15 +130,14 @@ def run_model(config):
                 config["enc_in"] = len_in_rnn
                 config["dec_in"] = len_in_rnn
 
-            tuner = HyperParameterTuner(config, param_ranges, n_splits=2, n_trials=5)
+            tuner = HyperParameterTuner(config, param_ranges, n_splits=1, n_trials=1)
             tuner.run_study()
             tuner.train_final_model()
 
             if config.get("use_wandb", False):
                 wandb.finish()
 
-
 if __name__ == '__main__':
     # run_causal_discovery(base_config)
-    # base_config["wandb_project"] = "90d_test"
+    base_config["wandb_project"] = "lstm_test"
     run_model(base_config)

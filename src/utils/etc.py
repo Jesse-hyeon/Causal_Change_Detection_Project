@@ -28,7 +28,6 @@ class ProbMask():
 
 ### Learning_rate 학습 함수 정의
 def adjust_learning_rate(optimizer, epoch, args):
-    # lr = args.learning_rate * (0.2 ** (epoch // 2))
     if args["lradj"] == 'type1':
         lr_adjust = {epoch: args["learning_rate"] * (0.5 ** ((epoch - 1) // 1))}
     elif args["lradj"] == 'type2':
@@ -36,6 +35,20 @@ def adjust_learning_rate(optimizer, epoch, args):
             2: 5e-5, 4: 1e-5, 6: 5e-6, 8: 1e-6,
             10: 5e-7, 15: 1e-7, 20: 5e-8
         }
+    elif args["lradj"] == 'type3':
+        # 매 5 epoch마다 0.8배씩 줄이기
+        base_lr = args["learning_rate"]
+        decay_rate = 0.8
+        step_size = 5
+        lr = base_lr * (decay_rate ** (epoch // step_size))
+        # 최소 lr 보장
+        lr = max(lr, 1e-5)
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
+        print(f'Updating learning rate to {lr:.8f}')
+        return  # type3은 여기서 끝나기 때문에 아래 if문은 건너뜀
+
+    # type1, type2 처리
     if epoch in lr_adjust.keys():
         lr = lr_adjust[epoch]
         for param_group in optimizer.param_groups:
@@ -74,7 +87,6 @@ class EarlyStopping:
             print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
         torch.save(model.state_dict(), path + '/' + 'checkpoint.pth')
         self.val_loss_min = val_loss
-
 
 ### 시각화 함수 정의
 def visual(true, preds=None, name='./pic/test.pdf'):
@@ -119,20 +131,23 @@ def MAPE(pred, true):
 def MSPE(pred, true):
     return np.mean(np.square((pred - true) / true))
 
-
 def D_STAT(pred, true):
     """
     Compute directional accuracy D_stat (%)
     which measures how often the predicted direction matches the actual direction.
     """
-    true = np.squeeze(true)
-    pred = np.squeeze(pred)
+    true = np.array(true)  # shape: (1, 1, 90, 1)
+    pred = np.array(pred)
 
-    true_diff = np.diff(true, axis=1)
-    # Actual changes
-    pred_diff = np.diff(pred, axis=1) # Predicted changes
-    correct_direction = (true_diff * pred_diff) >= 0  # Check if both have the same sign
-    return np.mean(correct_direction) * 100  # Convert to percentage
+    # reshape to (batch, seq)
+    true = true.reshape(-1, true.shape[2])  # → (1, 90)
+    pred = pred.reshape(-1, pred.shape[2])  # → (1, 90)
+
+    true_diff = np.diff(true, axis=1)       # → (1, 89)
+    pred_diff = np.diff(pred, axis=1)       # → (1, 89)
+
+    correct_direction = (true_diff * pred_diff) >= 0
+    return np.mean(correct_direction) * 100
 
 
 def metric(pred, true):

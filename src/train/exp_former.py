@@ -312,7 +312,7 @@ class Exp_Main_former(Exp_Basic_former):
                 preds.append(pred_original)
                 trues.append(true_original)
 
-                if self.final_run:
+                if self.final_run and self.config.get("use_wandb", False):
                     if i % 20 == 0:
                         input = batch_x.detach().cpu().numpy()
                         input_y = input[0, :, -1].reshape(-1, 1)
@@ -349,7 +349,7 @@ class Exp_Main_former(Exp_Basic_former):
 
         mae, mse, rmse, mape, mspe, d_stat = metric(preds, trues)
 
-        if self.final_run:
+        if self.final_run and self.config.get("use_wandb", False):
             wandb.log({
                 "test_mae": mae,
                 "test_mse": mse,

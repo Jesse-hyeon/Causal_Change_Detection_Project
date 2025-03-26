@@ -2,7 +2,7 @@
     "feature_set": [],
 
     "former_model" : ["transformer", "ns_transformer", "ns_informer", "ns_autoformer"],
-    "rnn_model" : ["rnn", "lstm"],
+    "rnn_model" : ["rnn", "mlp", "lstm"],
 
     "model": "ns_transformer",
     "seed": 2021,
@@ -47,18 +47,18 @@
     "hidden_size" : 256,
 
     "num_workers": 0,
-    "train_epochs": 5,
+    "train_epochs": 50,
     "batch_size": 32,
     "patience": 3,
     "learning_rate": 0.0001,
     "loss": "mse",
-    "lradj": "type1",
+    "lradj": "type3",
 
     "use_amp": false,
     "use_gpu": false,
     "gpu": 0,
     "use_multi_gpu": false,
-    "use_wandb" : false,
+    "use_wandb" : true,
 
     "p_hidden_dims": [
         128,
