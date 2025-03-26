@@ -27,6 +27,7 @@ print("raw data columns :", len(raw_data.columns))
 num_test_original = 90
 num_train_original = int(len(raw_data) - num_test_original)
 
+
 # config 업데이트
 base_config["num_train_original"] = num_train_original
 
@@ -48,9 +49,15 @@ param_ranges = {
     "activation": {"type": "categorical", "choices": ["relu", "gelu"]},
 }
 
+cols = list(raw_data.columns)
+if "Com_Gold" in cols:
+    cols.remove("Com_Gold")
+    cols.append("Com_Gold")
+
 ### 인과추론 코드 완성되기 전에 임의로 만드는 causal_discovery_list
 feature_sets = {
-    "Lasso": [
+    "all": cols,
+    "base": [
         "date", "EX_USD_CNY", "EX_AUD_USD", "Idx_DxyUSD", "Idx_SnP500", "Idx_SnPVIX", "Idx_CH50", "Idx_Shanghai",
         "Bonds_CHN_30Y", "Bonds_CHN_20Y", "Bonds_CHN_10Y", "Bonds_CHN_5Y", "Bonds_CHN_2Y", "Bonds_CHN_1Y",
         "Bonds_US_10Y", "Bonds_US_2Y", "Bonds_US_1Y", "Bonds_US_3M", "Bonds_AUS_10Y", "Bonds_AUS_1Y",
@@ -58,10 +65,20 @@ feature_sets = {
         "EPU_GEPU_ppp", "EPU_Australia", "EPU_Brazil", "EPU_Canada", "EPU_France",
         "EPU_Germany", "EPU_UK", "EPU_US", "Com_Gold"
     ],
-    "PCMCI": [
-        "date", "EX_USD_KRW", "EX_USD_JPY", "Idx_DxyUSD", "Idx_SnP500", "Idx_CH50", "Idx_CSI300", "Idx_HangSeng",
-        "Bonds_CHN_10Y", "Bonds_CHN_5Y", "Bonds_US_10Y", "Bonds_US_2Y", "Com_CrudeOil", "Com_NaturalGas",
-        "Com_Iron_Ore", "Com_Copper", "EPU_GEPU_current", "EPU_France", "EPU_Germany", "EPU_Japan", "Com_Gold"
+    "Lasso": [
+        "date", 'Bonds_CHN_10Y', 'Bonds_CHN_2Y', 'Bonds_BRZ_10Y', 'Bonds_BRZ_1Y',
+        'Bonds_IND_10Y', 'Bonds_IND_1Y', 'Com_Cocoa', 'Com_Cheese', 'Com_NaturalGas',
+        'Com_Rice', 'Com_Uranium', 'Com_Silver', 'Com_Coffee', 'Idx_SnP500',
+        'EPU_Canada', 'EPU_Ireland', 'EPU_Korea', 'EPU_Pakistan', 'EPU_Spain',
+        'EPU_US', 'EPU_Mainland China', 'Idx_CBOE_VIX', 'Idx_US_PMI', 'Idx_US_IPI',
+        'Idx_US_CPI', 'Idx_US_CCI', 'Idx_US_GDP_Deflator', "Com_Gold"
+    ],
+    "varlingam": [
+        'date', 'Bonds_BRZ_10Y', 'Bonds_BRZ_1Y', 'Bonds_CHN_10Y', 'Bonds_CHN_2Y', 'Bonds_CHN_30Y', 'Bonds_US_10Y',
+        'Bonds_US_1Y', 'Bonds_US_2Y', 'Com_BrentCrudeOil', 'Com_LME_Index', 'Com_Silver', 'Com_SunflowerOil',
+        'EPU_GEPU_current', 'EPU_GEPU_ppp', 'EPU_Hybrid China', 'EPU_Singapore', 'EX_EUR_USD', 'EX_USD_BRL',
+        'EX_USD_JPY', 'Idx_CBOE_VIX', 'Idx_CSI300', 'Idx_DowJones', 'Idx_DxyUSD', 'Idx_FEDFUNDS', 'Idx_NASDAQ',
+        'Idx_Shanghai50', 'Idx_SnP500', 'Idx_SnPGlobal1200', 'Idx_SnPVIX', 'Idx_US_CPI', 'Idx_US_GDP_Deflator', 'Com_Gold'
     ],
     "NBCB": [
         "date", "Bonds_CHN_10Y", "Bonds_CHN_1Y", "Bonds_CHN_2Y", "Bonds_CHN_5Y", "Bonds_US_10Y", "Bonds_US_1Y",
@@ -71,8 +88,8 @@ feature_sets = {
 }
 
 ### 인과 발견, 모델 리스트
-causal_discovery_list = ["Lasso"]
-model_list = ["mlp"]
+causal_discovery_list = ["all", "base", "Lasso", "varlingam", "NBCB"]
+model_list = ["rnn", "lstm", "transformer", "ns_transformer"]
 
 def run_causal_discovery(config):
     data = pd.read_csv(os.path.join(config["root_path"], config["train_data_path"]))
@@ -130,7 +147,7 @@ def run_model(config):
                 config["enc_in"] = len_in_rnn
                 config["dec_in"] = len_in_rnn
 
-            tuner = HyperParameterTuner(config, param_ranges, n_splits=1, n_trials=1)
+            tuner = HyperParameterTuner(config, param_ranges, n_splits=2, n_trials=10)
             tuner.run_study()
             tuner.train_final_model()
 
@@ -139,5 +156,5 @@ def run_model(config):
 
 if __name__ == '__main__':
     # run_causal_discovery(base_config)
-    base_config["wandb_project"] = "lstm_test"
+    base_config["wandb_project"] = "rnn test"
     run_model(base_config)

@@ -230,12 +230,6 @@ class Exp_Main_rnn(Exp_Basic_rnn):
                 else:
                     outputs = self.model(batch_x)
 
-                print("batch_x value:", batch_x[0, 85:, 36])
-                print("batch_x value2:", batch_x[0, 85:, 0])
-                print("batch_y value:", batch_y[0, :5, 36])
-                print("outputs shape:", outputs.shape)
-                print("outputs value:", outputs[0, :5])
-
                 # ✅ feature dimension 결정 (원본 코드 유지)
                 f_dim = -1 if self.config["features"] == 'MS' else 0
                 outputs = outputs[:, -self.config["pred_len"]:, f_dim:]

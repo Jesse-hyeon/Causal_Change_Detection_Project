@@ -36,3 +36,46 @@ class lstm_model(nn.Module):
         output = self.fc(lstm_out)  # (batch_size, pred_len, num_classes)
 
         return output
+
+
+# import torch
+# import torch.nn as nn
+#
+# class lstm_model(nn.Module):
+#     def __init__(self, config):
+#         super(lstm_model, self).__init__()
+#
+#         self.n_feature = config["c_out"]         # 예측하고자 하는 feature 수
+#         self.hidden_size = config["hidden_size"]
+#         self.pred_len = config["pred_len"]
+#
+#         self.lstm = nn.LSTM(
+#             input_size=config["enc_in"],
+#             hidden_size=self.hidden_size,
+#             num_layers=config["num_layers"],
+#             batch_first=True
+#         )
+#
+#         self.fc = nn.Sequential(
+#             nn.Linear(self.hidden_size, self.pred_len * self.n_feature),
+#             nn.ReLU()  # 또는 필요 시 tanh, sigmoid 등
+#         )
+#
+#     def forward(self, x):
+#         batch_size = x.size(0)
+#
+#         h_0 = torch.zeros(1, batch_size, self.hidden_size).to(x.device)
+#         c_0 = torch.zeros(1, batch_size, self.hidden_size).to(x.device)
+#
+#         _, (h_n, _) = self.lstm(x, (h_0, c_0))   # h_n: (1, batch, hidden_size)
+#         h_n = h_n.squeeze(0)                    # -> (batch, hidden_size)
+#
+#         out = self.fc(h_n)                      # -> (batch, pred_len * n_feature)
+#         output = out.view(batch_size, self.pred_len, self.n_feature)
+#
+#         return output
+
+
+
+
+
