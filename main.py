@@ -24,13 +24,6 @@ print("raw data columns :", len(raw_data.columns))
 # num_train_original = int(len(raw_data) * base_config["train_ratio"])
 # num_test_original = int(len(raw_data) * base_config["test_ratio"])
 
-num_test_original = 90
-num_train_original = int(len(raw_data) - num_test_original)
-
-
-# config 업데이트
-base_config["num_train_original"] = num_train_original
-
 ### seed 고정
 fix_seed = base_config["seed"]
 random.seed(fix_seed)
@@ -66,19 +59,19 @@ feature_sets = {
         "EPU_Germany", "EPU_UK", "EPU_US", "Com_Gold"
     ],
     "Lasso": [
-        "date", 'Bonds_CHN_10Y', 'Bonds_CHN_2Y', 'Bonds_BRZ_10Y', 'Bonds_BRZ_1Y',
+        'date', 'Bonds_CHN_10Y', 'Bonds_CHN_2Y', 'Bonds_BRZ_10Y', 'Bonds_BRZ_1Y',
         'Bonds_IND_10Y', 'Bonds_IND_1Y', 'Com_Cocoa', 'Com_Cheese', 'Com_NaturalGas',
         'Com_Rice', 'Com_Uranium', 'Com_Silver', 'Com_Coffee', 'Idx_SnP500',
         'EPU_Canada', 'EPU_Ireland', 'EPU_Korea', 'EPU_Pakistan', 'EPU_Spain',
         'EPU_US', 'EPU_Mainland China', 'Idx_CBOE_VIX', 'Idx_US_PMI', 'Idx_US_IPI',
-        'Idx_US_CPI', 'Idx_US_CCI', 'Idx_US_GDP_Deflator', "Com_Gold"
+        'Idx_US_CPI', 'Idx_US_CCI', 'Idx_US_GDP_Deflator', 'Com_Gold'
     ],
-    "varlingam": [
-        'date', 'Bonds_BRZ_10Y', 'Bonds_BRZ_1Y', 'Bonds_CHN_10Y', 'Bonds_CHN_2Y', 'Bonds_CHN_30Y', 'Bonds_US_10Y',
-        'Bonds_US_1Y', 'Bonds_US_2Y', 'Com_BrentCrudeOil', 'Com_LME_Index', 'Com_Silver', 'Com_SunflowerOil',
+    "VARLiNGAM": [
+        'date', 'Bonds_BRZ_10Y', 'Bonds_BRZ_1Y', 'Bonds_CHN_2Y', 'Bonds_CHN_30Y', 'Bonds_US_10Y',
+        'Bonds_US_1Y', 'Bonds_US_2Y', 'Bonds_US_3M', 'Com_Platinum', 'Com_Silver', 'Com_SunflowerOil',
         'EPU_GEPU_current', 'EPU_GEPU_ppp', 'EPU_Hybrid China', 'EPU_Singapore', 'EX_EUR_USD', 'EX_USD_BRL',
-        'EX_USD_JPY', 'Idx_CBOE_VIX', 'Idx_CSI300', 'Idx_DowJones', 'Idx_DxyUSD', 'Idx_FEDFUNDS', 'Idx_NASDAQ',
-        'Idx_Shanghai50', 'Idx_SnP500', 'Idx_SnPGlobal1200', 'Idx_SnPVIX', 'Idx_US_CPI', 'Idx_US_GDP_Deflator', 'Com_Gold'
+        'EX_USD_JPY', 'Idx_CBOE_VIX', 'Idx_CSI300', 'Idx_DowJones', 'Idx_DxyUSD', 'Idx_FEDFUNDS', 'Idx_NASDAQ', 'Idx_Shanghai50',
+        'Idx_SnP500', 'Idx_SnPGlobal1200', 'Idx_SnPVIX', 'Idx_US_CPI', 'Idx_US_GDP_Deflator', 'Com_Gold'
     ],
     "NBCB": [
         "date", "Bonds_CHN_10Y", "Bonds_CHN_1Y", "Bonds_CHN_2Y", "Bonds_CHN_5Y", "Bonds_US_10Y", "Bonds_US_1Y",
@@ -88,73 +81,58 @@ feature_sets = {
 }
 
 ### 인과 발견, 모델 리스트
-causal_discovery_list = ["all", "base", "Lasso", "varlingam", "NBCB"]
+causal_discovery_list = ["all", "Lasso", "VARLiNGAM"]
 model_list = ["rnn", "lstm", "transformer", "ns_transformer"]
-
-def run_causal_discovery(config):
-    data = pd.read_csv(os.path.join(config["root_path"], config["train_data_path"]))
-
-    X = data.drop(columns='Com_Gold')
-    y = data['Com_Gold']
-
-    test_size = config["pred_len"]
-
-    X_train, X_test = X[:-test_size], X[-test_size:]
-    y_train, y_test = y[:-test_size], y[-test_size:]
-
-    # 클래스 사용
-    lasso = lasso_model(alpha=0.1)
-    lasso.fit(X_train, y_train)
-
-    # 선택된 feature 확인
-    selected_features = lasso.get_selected_features()
-    print("Selected features:", selected_features)
-    print("len of selected features:", len(selected_features))
-
-    # 계수 확인
-    coefficients = lasso.get_coefficients()
-    print(coefficients[coefficients != 0])
+pred_len_list = [90, 60]
 
 ### 최종 실험 함수
 def run_model(config):
-    for model_name in model_list:
-        config["model"] = model_name
-        print("\n" + "=" * 50)
-        print(f"🚀 [ Running Experiment ] - Model: {model_name}")
-        print("=" * 50 + "\n")
+    for pred_len in pred_len_list:
+        print("\n" + "*" * 50)
+        print(f"💥 | Forecast Horizon | - pred_len: {pred_len}")
+        print("*" * 50 + "\n")
+        num_test_original = pred_len
+        num_train_original = int(len(raw_data) - num_test_original)
 
-        for cd_name in causal_discovery_list:
-            print("-" * 50)
-            print(f"🔍 Causal Discovery Method: {cd_name}")
-            print("-" * 50)
+        base_config["num_train_original"] = num_train_original
+        for model_name in model_list:
+            config["model"] = model_name
+            print("\n" + "=" * 50)
+            print(f"🚀 [ Running Experiment ] - Model: {model_name}")
+            print("=" * 50 + "\n")
 
-            config["feature_set"] = feature_sets[cd_name]
+            for cd_name in causal_discovery_list:
+                print("-" * 50)
+                print(f"🔍 Causal Discovery Method: {cd_name}")
+                print("-" * 50)
 
-            # ✅ wandb 기록 조건 추가
-            if config.get("use_wandb", False):
-                wandb.init(
-                    project=config.get("wandb_project", "default_project"),
-                    name=f"{model_name}_{cd_name}",
-                    config=config
-                )
+                config["feature_set"] = feature_sets[cd_name]
 
-            if config["model"] in config["former_model"]:  # Transformer 기반 모델
-                len_in_former = len(config["feature_set"]) - 1
-                config["enc_in"] = len_in_former
-                config["dec_in"] = len_in_former
-            else:  # RNN 기반 모델
-                len_in_rnn = len(config["feature_set"]) - 1 + 3
-                config["enc_in"] = len_in_rnn
-                config["dec_in"] = len_in_rnn
+                # ✅ wandb 기록 조건 추가
+                if config.get("use_wandb", False):
+                    wandb.init(
+                        project=config.get("wandb_project", "default_project"),
+                        name=f"{pred_len}_{model_name}_{cd_name}",
+                        config=config
+                    )
 
-            tuner = HyperParameterTuner(config, param_ranges, n_splits=2, n_trials=10)
-            tuner.run_study()
-            tuner.train_final_model()
+                if config["model"] in config["former_model"]:  # Transformer 기반 모델
+                    len_in_former = len(config["feature_set"]) - 1
+                    config["enc_in"] = len_in_former
+                    config["dec_in"] = len_in_former
+                else:  # RNN 기반 모델
+                    len_in_rnn = len(config["feature_set"]) - 1 + 3
+                    config["enc_in"] = len_in_rnn
+                    config["dec_in"] = len_in_rnn
 
-            if config.get("use_wandb", False):
-                wandb.finish()
+                tuner = HyperParameterTuner(config, param_ranges, n_splits=3, n_trials=50)
+                tuner.run_study()
+                tuner.train_final_model()
+
+                if config.get("use_wandb", False):
+                    wandb.finish()
 
 if __name__ == '__main__':
     # run_causal_discovery(base_config)
-    base_config["wandb_project"] = "rnn test"
+    base_config["wandb_project"] = "pred_len_test"
     run_model(base_config)

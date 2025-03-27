@@ -7,26 +7,9 @@ class FeatureSelector:
         self.target_col = target_col
         self.method = method
 
-    def _select_features_lasso(self, threshold=0.01):
-        from src.causal_discovery.Lasso import lasso_model
-
-        X = self.data.drop(columns='Com_Gold')
-        y = self.data['Com_Gold']
-
-        test_size = 90
-        X_train, X_test = X[:-test_size], X[-test_size:]
-        y_train, y_test = y[:-test_size], y[-test_size:]
-
-        # 클래스 사용
-        lasso_model = lasso_model(alpha=threshold)
-        lasso_model.fit(X_train, y_train)
-
-        # 선택된 feature 확인
-        selected_features = lasso_model.get_selected_features()
-        print("selected_features:", selected_features)
-
+    def _select_features_lasso(self, threshold=0.1):
         # Placeholder: Lasso 기반 feature selection 구현
-        return selected_features
+        return []
 
     def _select_features_var(self, threshold=0.1):
         # Placeholder: VAR 모델 기반 feature selection 구현
@@ -71,7 +54,7 @@ class FeatureSelector:
         )
         return results_plus
 
-    def _select_features_varlingam(self, threshold=0.01):
+    def _select_features_varlingam(self, threshold=0.05):
         from lingam import VARLiNGAM
         model = model = VARLiNGAM(lags=3, criterion='bic', prune=False)
         model.fit(self.data.values)

@@ -1,151 +1,160 @@
 import numpy as np
 import pandas as pd
 
+# Tigramite + background knowledge 버전
+# from tigramite.pcmci import PCMCI             # <- 순정 PCMCI
+from src.utils.pcmci_with_bk import PCMCI as PCMCIbk # <- forbidden_orientation 지원 버전, 논문에서 사용한 것
 from tigramite import data_processing as pp
 from tigramite.independence_tests.parcorr import ParCorr
-from tigramite.pcmci import PCMCI
+
+# lingam 라이브러리
 from lingam import VARLiNGAM
 
 class NBCBw:
     """
-    Noise-Based (VarLiNGAM) + Constraint-Based (PCMCI+) 시계열 인과추론 모델
-    - Window Causal Graph 형태 (lag>0은 시간방향, lag=0은 noise-based 순서)
-    - forbidden_orientation: NB 단계에서 결정한 인과방향을
-      CB 단계에서 뒤집지 못하도록 하는 제약
+    Noise-Based (VarLiNGAM) + Constraint-Based (PCMCI+ with background knowledge) 시계열 인과 모델
+    1) Noise-based에서 lag별 인과 계수행렬로 forbidden_orientation 설정
+    2) Constraint-based(PCMCI+)에서 forbidden_orientation을 적용해 뒤집지 않도록 제약
+    3) 최종 window_causal_graph_dict에는 원인에 대한 (변수명, -lag) 정보를 담는다
     """
 
     def __init__(self,
                  data: pd.DataFrame,
                  tau_max: int = 3,
                  sig_level: float = 0.05,
+                 threshold: float = 0.01,
                  linear: bool = True):
         """
-        :param data: 시계열 DataFrame (행=시간, 열=변수)
-        :param tau_max: 최대 시차(lag) 설정
-        :param sig_level: 유의수준(alpha) 예: 0.05
-        :param linear: True면 VarLiNGAM 사용 (비선형 X),
-                       False면 여유롭게 RESIT 등 대안 사용 가능
+        :param data:      시계열 DataFrame (행=시간, 열=변수)
+        :param tau_max:   최대 시차(lag) 설정 (Noise-based와 PCMCI 모두 사용)
+        :param sig_level: PCMCI+에서 사용될 유의수준(pc_alpha)
+        :param threshold: VarLiNGAM 계수 필터링 임계값
+        :param linear:    True면 VarLiNGAM(선형), False면 다른 Noise-based 가능(RESIT 등)
         """
         self.data = data
         self.tau_max = tau_max
         self.sig_level = sig_level
+        self.threshold = threshold
         self.linear = linear
 
         # Noise-Based 결과
-        self.causal_order_matrix = None       # VarLiNGAM에서 추출된 인과순서 매트릭스
-        self.forbidden_orientation = []       # NB 단계에서 금지된 방향 (i->j 고정)
-        self.window_causal_graph_dict = {col: [] for col in data.columns}
+        self.forbidden_orientation = []         # (effect_idx, cause_idx) 튜플
+        self.window_causal_graph_dict = {
+            col: [] for col in self.data.columns
+        }
 
     def _noise_based(self):
         """
-        VarLiNGAM 등을 이용해 동시시점 인과순서(순위) 먼저 추정
-        - causal_order_matrix (상삼각=2, 하삼각=1)
-        - forbidden_orientation (뒤집지 못할 방향 목록)
+        Noise-Based: VarLiNGAM(시차=lags) → 인과 계수행렬(adjacency_matrices_) 활용
+        - 절댓값이 threshold 초과인 계수만 의미있는 인과로 판단
+        - (effect_idx, cause_idx)를 forbidden_orientation에 기록(반대방향 금지)
+        - window_causal_graph_dict에 (원인변수명, -lag) 저장
         """
         print("=== [NBCBw] Noise-Based Step: VarLiNGAM ===")
-
-        # 1. VarLiNGAM 모델 적합
-        model = VARLiNGAM(lags=3, criterion='bic', prune=False) if self.linear else None
+        var_names = list(self.data.columns)
+        model = VARLiNGAM(lags=self.tau_max, criterion='bic', prune=False)
         model.fit(self.data.values)
 
-        order_list = model.causal_order_  # 예: [0, 2, 1, ...] (변수 인덱스 순서)
-        var_names = list(self.data.columns)
-        n = len(var_names)
+        adjacency_mats = model.adjacency_matrices_  # [array(lag1), array(lag2), ...]
+        n_vars = len(var_names)
 
-        # 2. 인과순서 행렬
-        order_matrix = pd.DataFrame(
-            np.zeros((n, n)),
-            columns=var_names,
-            index=var_names,
-            dtype=int
-        )
+        # lag=1 => j(t-1)->i(t), lag=2 => j(t-2)->i(t), ...
+        for lag_idx, mat in enumerate(adjacency_mats, start=1):
+            for i in range(n_vars):       # effect
+                for j in range(n_vars):   # cause
+                    coef = mat[i, j]
+                    if abs(coef) > self.threshold:
+                        # j(t-lag_idx) --> i(t)
+                        effect_name = var_names[i]
+                        cause_name  = var_names[j]
 
-        # order_list에서 앞쪽일수록 “원인”에 가깝다
-        for i in range(n):
-            for j in range(i + 1, n):
-                idx_i = order_list.index(i)
-                idx_j = order_list.index(j)
-                if idx_i < idx_j:
-                    # i -> j
-                    order_matrix.iloc[i, j] = 1
-                    order_matrix.iloc[j, i] = 2
-                else:
-                    # j -> i
-                    order_matrix.iloc[j, i] = 1
-                    order_matrix.iloc[i, j] = 2
+                        # forbidden_orientation: i->j는 뒤집으면 안 됨 => (i, j)
+                        self.forbidden_orientation.append((i, j))
 
-        self.causal_order_matrix = order_matrix
+                        # window_causal_graph_dict: (cause, -lag_idx)
+                        self.window_causal_graph_dict[effect_name].append(
+                            (cause_name, -lag_idx)
+                        )
 
-        # 3. forbidden_orientation 설정
-        for i in range(n):
-            for j in range(n):
-                if i != j and order_matrix.iloc[i, j] == 1 and order_matrix.iloc[j, i] == 2:
-                    # i->j가 결정됐으니 j->i는 금지
-                    self.forbidden_orientation.append((j, i))
-
-        print("Causal Order Matrix:\n", self.causal_order_matrix)
+        print("### [NB] forbidden_orientation:", self.forbidden_orientation)
+        for var in self.window_causal_graph_dict:
+            print(f"{var}: {self.window_causal_graph_dict[var]}")
 
     def _constraint_based(self):
         """
-        PCMCI+ (Constraint-Based) 단계
-        - forbidden_orientation을 이용해 NBCB에서 뒤집으면 안되는 방향을 보존
+        Constraint-Based(PCMCI+ with BK):
+          - forbidden_orientation로 NB 단계에서 확정된 방향을 뒤집지 않도록
+            links_for_pc 후보에서 제거 → run_pcmciplus 실행
+          - PCMCI+ 결과에서 graph 파싱해서, window_causal_graph_dict를 업데이트
         """
         print("=== [NBCBw] Constraint-Based Step: PCMCI+ ===")
 
-        # 1. Tigramite용 DataFrame 생성
+        # 1. Tigramite용 data & ParCorr
         dataframe = pp.DataFrame(
             data=self.data.values,
             var_names=list(self.data.columns)
         )
-
-        # 2. 독립성 검정(ParCorr) + PCMCI+
         cond_ind_test = ParCorr(significance='analytic')
 
-        # 3. PCMCI + 실행
-        pcmci = PCMCI(dataframe=dataframe, cond_ind_test=cond_ind_test, verbosity=0)
-        results = pcmci.run_pcmciplus(tau_min=0, tau_max=self.tau_max, pc_alpha=self.sig_level)
+        # 2. PCMCIbk: 금지방향 인자를 받을 수 있는 버전
+        pcmci = PCMCIbk(
+            dataframe=dataframe,
+            cond_ind_test=cond_ind_test,
+            verbosity=1
+        )
 
-        if isinstance(results, tuple):
-            results = results[0]
-        graph_3d = np.squeeze(results["graph"], axis=-1) if results["graph"].ndim == 4 else results["graph"]
+        # 3. forbidden_orientation 적용 + run_pcmciplus
+        #    forbidden_orientation = [(effect_idx, cause_idx), ...]
+        results = pcmci.run_pcmciplus(
+            tau_min=0,
+            tau_max=self.tau_max,
+            pc_alpha=self.sig_level,
+            forbidden_orientation=self.forbidden_orientation
+        )
+        # results: {'graph', 'val_matrix', 'p_matrix', 'conf_matrix'...}
 
-        # 4. 결과 배열 확인
-        print("PCMCI+ graph shape:", results["graph"].shape)
-
-        # 5. 결과 파싱
-        n = self.data.shape[1]
+        # 4. graph parsing (string array)
+        #    graph[i,j,t] in {"-->", "<--", "o-o", "x-x", ""}
+        graph_3d = results["graph"]
         var_names = list(self.data.columns)
-        for i in range(n):
-            for j in range(n):
+        n_vars = len(var_names)
+
+        # 주의: PCMCI+가 lag=0 ~ tau_max까지 모두 처리
+        # j(t)는 i(t - tau) link
+        for i in range(n_vars):
+            for j in range(n_vars):
+                if i == j:
+                    continue
                 for tau in range(self.tau_max + 1):
-                    if i == j:
-                        continue
                     symbol = graph_3d[i, j, tau]
-
-                    # 6. 예상 외의 다중 값 예외 처리
-                    if isinstance(symbol, (list, tuple, np.ndarray)):
-                        if len(symbol) == 1:
-                            symbol = symbol[0]  # 단일 값이면 첫 번째 요소 사용
-                        else:
-                            print(f"⚠ Unexpected format at ({i}, {j}, {tau}):", symbol)
-                            continue  # 다중 값이면 무시하고 다음으로 진행
-
-                    # 7. 올바른 방향성인 경우 추가
                     if symbol == '-->':
-                        lag_val = 0 if tau == 0 else -tau
-                        cause_name = var_names[i]
+                        # i(t - tau) => j(t)
+                        cause_name  = var_names[i]
                         effect_name = var_names[j]
-                        self.window_causal_graph_dict[effect_name].append((cause_name, lag_val))
+                        lag_val = -tau
+                        # window_causal_graph_dict[effect_name]에 추가
+                        self.window_causal_graph_dict[effect_name].append(
+                            (cause_name, lag_val)
+                        )
 
-        print("=== [Constraint-Based] final window_causal_graph_dict ===")
+        print("=== [CB] final window_causal_graph_dict ===")
         for var in var_names:
-            print(var, ":", self.window_causal_graph_dict[var])
+            print(f"{var}: {self.window_causal_graph_dict[var]}")
 
     def run(self):
+        """
+        최종 실행:
+        1) noise-based (VarLiNGAM)
+        2) constraint-based (PCMCI+ with forbidden_orientation)
+        3) Com_Gold에 영향을 미치는 변수만 별도 리스트로 반환 (원하는 변수로 교체 가능)
+        """
         self._noise_based()
         self._constraint_based()
 
-        # Com_Gold에 영향을 미치는 변수 리스트 저장
-        com_gold_causes = [cause for cause, lag in self.window_causal_graph_dict.get("Com_Gold", [])]
+        target_var = "Com_Gold"
+        if target_var in self.window_causal_graph_dict:
+            com_gold_causes = [cause for (cause, lag) in self.window_causal_graph_dict[target_var]]
+        else:
+            com_gold_causes = []
 
         return self.window_causal_graph_dict, com_gold_causes

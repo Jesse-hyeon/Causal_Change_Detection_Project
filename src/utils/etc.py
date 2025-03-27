@@ -140,8 +140,8 @@ def D_STAT(pred, true):
     pred = np.array(pred)
 
     # reshape to (batch, seq)
-    true = true.reshape(-1, true.shape[2])  # → (1, 90)
-    pred = pred.reshape(-1, pred.shape[2])  # → (1, 90)
+    true = true.reshape(true.shape[0], -1) # → (1, 90)
+    pred = pred.reshape(pred.shape[0], -1)  # → (1, 90)
 
     true_diff = np.diff(true, axis=1)       # → (1, 89)
     pred_diff = np.diff(pred, axis=1)       # → (1, 89)
