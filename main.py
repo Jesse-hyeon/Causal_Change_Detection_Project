@@ -9,7 +9,6 @@ import wandb
 import torch
 
 from src.train.optuna import HyperParameterTuner
-from src.causal_discovery.Lasso import lasso_model
 
 ### config(JSON 파일) 불러오기
 config_path = "/Users/choeseoheon/Desktop/Causal-Discovery/src/Arg/config.json"
@@ -49,7 +48,17 @@ if "Com_Gold" in cols:
 
 ### 인과추론 코드 완성되기 전에 임의로 만드는 causal_discovery_list
 feature_sets = {
-    "all": cols,
+    "all": ["date", 'Bonds_CHN_1Y', 'Bonds_BRZ_10Y', 'Com_Coking_Coal', 'Com_Corn',
+       'Com_Cocoa', 'Com_Cheese', 'Com_Cotton', 'Com_HRC_Steel', 'Com_Lumber',
+       'Com_Nickel', 'Com_NaturalGas', 'Com_Oat', 'Com_Wool', 'Com_Rice',
+       'Com_Sugar', 'Com_Iron_Ore', 'Com_Coffee', 'EX_USD_CNY', 'Idx_Shanghai',
+       'EPU_Australia', 'EPU_Brazil', 'EPU_Canada', 'EPU_Chile', 'EPU_France',
+       'EPU_Greece', 'EPU_India', 'EPU_Ireland', 'EPU_Italy', 'EPU_Japan',
+       'EPU_Korea', 'EPU_Pakistan', 'EPU_Russia', 'EPU_Spain', 'EPU_UK',
+       'EPU_US', 'EPU_Mainland China', 'Idx_MOVE', 'Idx_CBOE_VIX',
+       'Idx_US_PMI', 'Idx_US_IPI', 'Idx_US_IPI_chg', 'Idx_US_CPI_chg',
+       'Idx_US_UnemploymentRate_chg', "Com_Gold"
+    ],
     "base": [
         "date", "EX_USD_CNY", "EX_AUD_USD", "Idx_DxyUSD", "Idx_SnP500", "Idx_SnPVIX", "Idx_CH50", "Idx_Shanghai",
         "Bonds_CHN_30Y", "Bonds_CHN_20Y", "Bonds_CHN_10Y", "Bonds_CHN_5Y", "Bonds_CHN_2Y", "Bonds_CHN_1Y",
@@ -81,9 +90,9 @@ feature_sets = {
 }
 
 ### 인과 발견, 모델 리스트
-causal_discovery_list = ["all", "Lasso", "VARLiNGAM"]
-model_list = ["rnn", "lstm", "transformer", "ns_transformer"]
-pred_len_list = [90, 60]
+causal_discovery_list = ["all"]
+model_list = ["lstm"]
+pred_len_list = [90]
 
 ### 최종 실험 함수
 def run_model(config):
@@ -125,7 +134,7 @@ def run_model(config):
                     config["enc_in"] = len_in_rnn
                     config["dec_in"] = len_in_rnn
 
-                tuner = HyperParameterTuner(config, param_ranges, n_splits=3, n_trials=50)
+                tuner = HyperParameterTuner(config, param_ranges, n_splits=1, n_trials=1)
                 tuner.run_study()
                 tuner.train_final_model()
 
