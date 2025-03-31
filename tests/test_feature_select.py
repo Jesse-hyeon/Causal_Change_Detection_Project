@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     # 사용할 기법 선택
     # Lasso, PCMCIPlUS, VARLiNGAM, NBCB
-    methods = ["PCMCIPlUS"]
+    methods = ["Lasso", "VARLiNGAM", "NBCB"]
 
     # 결과 feature들을 저장할 딕셔너리
     feature_sets = {}

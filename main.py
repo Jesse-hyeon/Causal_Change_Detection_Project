@@ -55,7 +55,7 @@ with open(feature_json_path, "r") as f:
     feature_sets = json.load(f)
 
 # 실험할 인과 추론 기법 수동 설정 (None이면 전체 사용)
-selected_methods = ["Lasso", "VARLiNGAM"]
+selected_methods = None
 model_list = ["rnn"]
 pred_len_list = [90]
 
@@ -86,6 +86,7 @@ def run_model(config):
                 print("-" * 50)
 
                 config["feature_set"] = feature_sets[cd_name]
+                print(config["feature_set"])
 
                 # ✅ wandb 기록 조건 추가
                 if config.get("use_wandb", False):
@@ -106,6 +107,11 @@ def run_model(config):
 
                 tuner = HyperParameterTuner(config, param_ranges, n_splits=1, n_trials=1)
                 tuner.run_study()
+
+                # 현재 하이퍼파라미터 저장
+                if config.get("use_wandb", False):
+                    wandb.config.update({"best_hyperparams": tuner.best_params})
+
                 tuner.train_final_model()
 
                 if config.get("use_wandb", False):

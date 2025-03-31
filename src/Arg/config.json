@@ -17,6 +17,7 @@
     "checkpoints": "./checkpoints/",
     "CD_freq" : "w",
     "CD_pred_len" : 12,
+    "tau_max" : 12,
 
     "num_train": 0,
     "num_valid": 0,

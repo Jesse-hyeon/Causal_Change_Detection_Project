@@ -42,12 +42,12 @@ class FeatureSelector:
         return selected_features
 
 
-    def _select_features_pcmciplus(self, threshold=0.1):
+    def _select_features_pcmciplus(self, config, threshold=0.05):
         from src.causal_discovery.Constraint_Based import pcmciplus_model
 
         selector = pcmciplus_model(
             data=self.data,
-            tau_max=3,
+            tau_max=config['tau_max'],
             alpha=threshold
         )
 
@@ -59,12 +59,12 @@ class FeatureSelector:
         print(f"PCMCI+ selected features for {self.target_col}: {feature_names}")
         return feature_names
 
-    def _select_features_varlingam(self, threshold=0.01):
+    def _select_features_varlingam(self, config, threshold=0.01):
         from src.causal_discovery.Noise_Based import varlingam_model
 
         selector = varlingam_model(
             data=self.data,
-            tau_max=3,
+            tau_max=config['tau_max'],
             threshold=threshold,
             target_var=self.target_col
         )
@@ -76,12 +76,12 @@ class FeatureSelector:
         print(f"[VarLiNGAM] selected features for {self.target_col}: {final_features}")
         return final_features
 
-    def _select_features_nbcb(self, threshold=0.1):
+    def _select_features_nbcb(self, config,  threshold=0.01):
         from src.causal_discovery.Hybrid import nbcbw_model
 
         nbcb = nbcbw_model(
             data=self.data,
-            tau_max=3,
+            tau_max=config['tau_max'],
             sig_level=0.05,
             threshold = threshold,
             linear=True,
@@ -100,10 +100,10 @@ class FeatureSelector:
         if self.method == "Lasso":
             return self._select_features_lasso(config = base_config)
         elif self.method == "PCMCIPlUS":
-            return self._select_features_pcmciplus()
+            return self._select_features_pcmciplus(config = base_config)
         elif self.method == "VARLiNGAM":
-            return self._select_features_varlingam()
+            return self._select_features_varlingam(config = base_config)
         elif self.method == "NBCB":
-            return self._select_features_nbcb()
+            return self._select_features_nbcb(config = base_config)
         else:
             raise ValueError(f"Unsupported feature selection method: {self.method}")

@@ -11,7 +11,7 @@ class nbcbw_model:
                  data: pd.DataFrame, # (행 = 시간, 열 = 변수)
                  tau_max: int = 3, # 최대 시차
                  sig_level: float = 0.05, # PCMCI+에서 사용될 유의수준(pc_alpha)
-                 threshold: float = 0.1, # 낮을수록 더 많은 feature을 인과가 있다고 판단
+                 threshold: float = 0.01, # 낮을수록 더 많은 feature을 인과가 있다고 판단
                  linear: bool = True): # VarLiNGAM(선형)
 
         self.data = data
@@ -118,6 +118,8 @@ class nbcbw_model:
         target_var = "Com_Gold"
         if target_var in self.window_causal_graph_dict:
             com_gold_causes = [cause for (cause, lag) in self.window_causal_graph_dict[target_var]]
+            # 중복 제거
+            com_gold_causes = list(dict.fromkeys(com_gold_causes))
         else:
             com_gold_causes = []
 
