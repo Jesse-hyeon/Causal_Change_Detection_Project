@@ -9,12 +9,14 @@
 
     "data": "custom",
     "root_path": "/Users/choeseoheon/Desktop/Causal-Discovery/input/",
-    "data_path": "Data_Daily_250313.csv",
+    "data_path": "Daily_data.csv",
     "train_data_path" : "train_len.csv",
     "features": "MS",
     "target": "Com_Gold",
     "freq": "b",
     "checkpoints": "./checkpoints/",
+    "CD_freq" : "w",
+    "CD_pred_len" : 12,
 
     "num_train": 0,
     "num_valid": 0,

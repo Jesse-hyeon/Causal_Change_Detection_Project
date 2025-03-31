@@ -1,5 +1,19 @@
+import platform
+import json
+
 import pandas as pd
 import numpy as np
+
+### config(JSON 파일) 불러오기
+if platform.system() == 'Windows':
+    base_path = 'C:/Users/T-Lab_Public/PycharmProjects/Causal-Discovery'
+else:
+    base_path = '/Users/choeseoheon/Desktop/Causal-Discovery'
+
+config_path = base_path + "/src/Arg/config.json"
+
+with open(config_path, "r") as f:
+    base_config = json.load(f)
 
 class FeatureSelector:
     def __init__(self, data, target_col, method="CFS"):
@@ -19,17 +33,13 @@ class FeatureSelector:
         y_train, y_test = y[:-test_size], y[-test_size:]
 
         # 클래스 사용
-        lasso = lasso_model(alpha=alpha)
+        lasso = lasso_model(config=config, alpha=alpha)
         lasso.fit(X_train, y_train)
 
         selected_features = lasso.get_selected_features()
         print("Selected features:", selected_features)
 
         return selected_features
-
-    def _select_features_var(self, threshold=0.1):
-        # Placeholder: VAR 모델 기반 feature selection 구현
-        return []
 
 
     def _select_features_pcmciplus(self, threshold=0.1):
@@ -49,7 +59,7 @@ class FeatureSelector:
         print(f"PCMCI+ selected features for {self.target_col}: {feature_names}")
         return feature_names
 
-    def _select_features_varlingam(self, threshold=0.1):
+    def _select_features_varlingam(self, threshold=0.01):
         from src.causal_discovery.Noise_Based import varlingam_model
 
         selector = varlingam_model(
@@ -88,9 +98,7 @@ class FeatureSelector:
 
     def select_features(self):
         if self.method == "Lasso":
-            return self._select_features_lasso()
-        elif self.method == "VAR":
-            return self._select_features_var()
+            return self._select_features_lasso(config = base_config)
         elif self.method == "PCMCIPlUS":
             return self._select_features_pcmciplus()
         elif self.method == "VARLiNGAM":

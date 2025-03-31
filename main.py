@@ -1,3 +1,4 @@
+import platform
 import os
 
 import json
@@ -11,7 +12,13 @@ import torch
 from src.train.optuna import HyperParameterTuner
 
 ### config(JSON 파일) 불러오기
-config_path = "/Users/choeseoheon/Desktop/Causal-Discovery/src/Arg/config.json"
+if platform.system() == 'Windows':
+    base_path = 'C:/Users/T-Lab_Public/PycharmProjects/Causal-Discovery'
+else:
+    base_path = '/Users/choeseoheon/Desktop/Causal-Discovery'
+
+config_path = base_path + "/src/Arg/config.json"
+
 with open(config_path, "r") as f:
     base_config = json.load(f)
 
@@ -41,58 +48,21 @@ param_ranges = {
     "activation": {"type": "categorical", "choices": ["relu", "gelu"]},
 }
 
-cols = list(raw_data.columns)
-if "Com_Gold" in cols:
-    cols.remove("Com_Gold")
-    cols.append("Com_Gold")
+### Feature set JSON 불러오기
+feature_json_path = os.path.join(base_path, "output", "feature_sets.json")
 
-### 인과추론 코드 완성되기 전에 임의로 만드는 causal_discovery_list
-feature_sets = {
-    "all": ["date", 'Bonds_CHN_1Y', 'Bonds_BRZ_10Y', 'Com_Coking_Coal', 'Com_Corn',
-       'Com_Cocoa', 'Com_Cheese', 'Com_Cotton', 'Com_HRC_Steel', 'Com_Lumber',
-       'Com_Nickel', 'Com_NaturalGas', 'Com_Oat', 'Com_Wool', 'Com_Rice',
-       'Com_Sugar', 'Com_Iron_Ore', 'Com_Coffee', 'EX_USD_CNY', 'Idx_Shanghai',
-       'EPU_Australia', 'EPU_Brazil', 'EPU_Canada', 'EPU_Chile', 'EPU_France',
-       'EPU_Greece', 'EPU_India', 'EPU_Ireland', 'EPU_Italy', 'EPU_Japan',
-       'EPU_Korea', 'EPU_Pakistan', 'EPU_Russia', 'EPU_Spain', 'EPU_UK',
-       'EPU_US', 'EPU_Mainland China', 'Idx_MOVE', 'Idx_CBOE_VIX',
-       'Idx_US_PMI', 'Idx_US_IPI', 'Idx_US_IPI_chg', 'Idx_US_CPI_chg',
-       'Idx_US_UnemploymentRate_chg', "Com_Gold"
-    ],
-    "base": [
-        "date", "EX_USD_CNY", "EX_AUD_USD", "Idx_DxyUSD", "Idx_SnP500", "Idx_SnPVIX", "Idx_CH50", "Idx_Shanghai",
-        "Bonds_CHN_30Y", "Bonds_CHN_20Y", "Bonds_CHN_10Y", "Bonds_CHN_5Y", "Bonds_CHN_2Y", "Bonds_CHN_1Y",
-        "Bonds_US_10Y", "Bonds_US_2Y", "Bonds_US_1Y", "Bonds_US_3M", "Bonds_AUS_10Y", "Bonds_AUS_1Y",
-        "Com_CrudeOil", "Com_BrentCrudeOil", "Com_Gasoline", "Com_NaturalGas", "Com_Silver", "EPU_GEPU_current",
-        "EPU_GEPU_ppp", "EPU_Australia", "EPU_Brazil", "EPU_Canada", "EPU_France",
-        "EPU_Germany", "EPU_UK", "EPU_US", "Com_Gold"
-    ],
-    "Lasso": [
-        'date', 'Bonds_CHN_10Y', 'Bonds_CHN_2Y', 'Bonds_BRZ_10Y', 'Bonds_BRZ_1Y',
-        'Bonds_IND_10Y', 'Bonds_IND_1Y', 'Com_Cocoa', 'Com_Cheese', 'Com_NaturalGas',
-        'Com_Rice', 'Com_Uranium', 'Com_Silver', 'Com_Coffee', 'Idx_SnP500',
-        'EPU_Canada', 'EPU_Ireland', 'EPU_Korea', 'EPU_Pakistan', 'EPU_Spain',
-        'EPU_US', 'EPU_Mainland China', 'Idx_CBOE_VIX', 'Idx_US_PMI', 'Idx_US_IPI',
-        'Idx_US_CPI', 'Idx_US_CCI', 'Idx_US_GDP_Deflator', 'Com_Gold'
-    ],
-    "VARLiNGAM": [
-        'date', 'Bonds_BRZ_10Y', 'Bonds_BRZ_1Y', 'Bonds_CHN_2Y', 'Bonds_CHN_30Y', 'Bonds_US_10Y',
-        'Bonds_US_1Y', 'Bonds_US_2Y', 'Bonds_US_3M', 'Com_Platinum', 'Com_Silver', 'Com_SunflowerOil',
-        'EPU_GEPU_current', 'EPU_GEPU_ppp', 'EPU_Hybrid China', 'EPU_Singapore', 'EX_EUR_USD', 'EX_USD_BRL',
-        'EX_USD_JPY', 'Idx_CBOE_VIX', 'Idx_CSI300', 'Idx_DowJones', 'Idx_DxyUSD', 'Idx_FEDFUNDS', 'Idx_NASDAQ', 'Idx_Shanghai50',
-        'Idx_SnP500', 'Idx_SnPGlobal1200', 'Idx_SnPVIX', 'Idx_US_CPI', 'Idx_US_GDP_Deflator', 'Com_Gold'
-    ],
-    "NBCB": [
-        "date", "Bonds_CHN_10Y", "Bonds_CHN_1Y", "Bonds_CHN_2Y", "Bonds_CHN_5Y", "Bonds_US_10Y", "Bonds_US_1Y",
-        "Bonds_US_2Y", "Bonds_US_3M", "Com_BrentCrudeOil", "Com_Gasoline", "Com_Silver", "EPU_GEPU_ppp",
-        "Idx_CH50", "Idx_Shanghai", "Idx_SnP500", "Idx_SnPVIX", "EX_AUD_USD", "EX_USD_CNY", "Idx_DxyUSD", "Com_Gold"
-    ]
-}
+with open(feature_json_path, "r") as f:
+    feature_sets = json.load(f)
 
-### 인과 발견, 모델 리스트
-causal_discovery_list = ["all"]
-model_list = ["lstm"]
+# 실험할 인과 추론 기법 수동 설정 (None이면 전체 사용)
+selected_methods = ["Lasso", "VARLiNGAM"]
+model_list = ["rnn"]
 pred_len_list = [90]
+
+if selected_methods is not None:
+    causal_discovery_list = [m for m in selected_methods if m in feature_sets]
+else:
+    causal_discovery_list = list(feature_sets.keys())
 
 ### 최종 실험 함수
 def run_model(config):
