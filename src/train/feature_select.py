@@ -21,7 +21,7 @@ class FeatureSelector:
         self.target_col = target_col
         self.method = method
 
-    def _select_features_lasso(self, config, alpha=0.01):
+    def _select_features_lasso(self, config, alpha="auto"):
         from src.causal_discovery.Traditional import lasso_model
         target = config["target"]
         X = self.data.drop(columns=target)

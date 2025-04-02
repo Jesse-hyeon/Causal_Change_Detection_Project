@@ -9,7 +9,7 @@ import wandb
 
 import torch
 
-from src.train.optuna import HyperParameterTuner
+from src.train.optuna_code import HyperParameterTuner
 
 ### config(JSON 파일) 불러오기
 if platform.system() == 'Windows':
@@ -38,14 +38,9 @@ np.random.seed(fix_seed)
 
 ### 하이퍼파라미터 범위 정보
 param_ranges = {
-    "d_model": {"type": "int", "low": 128, "high": 1024, "step": 128},
-    "n_heads": {"type": "int", "low": 2, "high": 16, "step": 2},
-    "e_layers": {"type": "int", "low": 1, "high": 4},
-    "d_layers": {"type": "int", "low": 1, "high": 3},
-    "d_ff": {"type": "int", "low": 512, "high": 4096, "step": 512},
-    "dropout": {"type": "float", "low": 0.0, "high": 0.5},
-    "batch_size": {"type": "categorical", "choices": [16, 32, 64]},
-    "activation": {"type": "categorical", "choices": ["relu", "gelu"]},
+    "d_model": [512, 640, 896],
+    "n_heads": [2, 4, 6, 8],
+    "activation": ["relu", "gelu"]
 }
 
 ### Feature set JSON 불러오기
@@ -56,7 +51,7 @@ with open(feature_json_path, "r") as f:
 
 # 실험할 인과 추론 기법 수동 설정 (None이면 전체 사용)
 selected_methods = None
-model_list = ["rnn"]
+model_list = ["lstm"]
 pred_len_list = [90]
 
 if selected_methods is not None:
@@ -105,7 +100,7 @@ def run_model(config):
                     config["enc_in"] = len_in_rnn
                     config["dec_in"] = len_in_rnn
 
-                tuner = HyperParameterTuner(config, param_ranges, n_splits=1, n_trials=1)
+                tuner = HyperParameterTuner(config, param_ranges, n_splits=1)
                 tuner.run_study()
 
                 # 현재 하이퍼파라미터 저장
@@ -119,5 +114,5 @@ def run_model(config):
 
 if __name__ == '__main__':
     # run_causal_discovery(base_config)
-    base_config["wandb_project"] = "pred_len_test"
+    base_config["wandb_project"] = "Grid_search_test"
     run_model(base_config)

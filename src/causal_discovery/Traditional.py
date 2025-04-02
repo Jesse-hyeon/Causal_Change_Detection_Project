@@ -1,30 +1,42 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, LassoCV
 from sklearn.metrics import mean_squared_error
 
 class lasso_model():
-    def __init__(self, config, alpha=0.1, max_iter=10000):
+    def __init__(self, config=None, alpha=0.1, max_iter=10000):
         self.alpha = alpha
         self.max_iter = max_iter
-        self.model = Lasso(alpha=self.alpha, max_iter=self.max_iter)
+        self.model = None
         self.fitted = False
         self.selected_features_ = None
         self.coefficients_ = None
+        self.best_alpha_ = None
+        self.config = config
 
     def preprocess(self, X):
         X = X.copy()
         if 'date' in X.columns:
-            X['date'] = pd.to_datetime(X['date'], errors='coerce')  # 문자열 → datetime
+            X['date'] = pd.to_datetime(X['date'], errors='coerce')
             X['year'] = X['date'].dt.year
             X['month'] = X['date'].dt.month
             X['dayofweek'] = X['date'].dt.dayofweek
-            X = X.drop(columns='date')  # 원래 date는 제거
+            X = X.drop(columns='date')
         return X
 
     def fit(self, X_train, y_train):
         X_train = self.preprocess(X_train)
-        self.model.fit(X_train, y_train)
+
+        if self.alpha == 'auto':
+            self.model = LassoCV(cv=5, max_iter=self.max_iter)
+            self.model.fit(X_train, y_train)
+            self.alpha = self.model.alpha_
+            self.best_alpha_ = self.model.alpha_
+            print(f"[LassoCV] Best alpha selected: {self.best_alpha_:.5f}")
+        else:
+            self.model = Lasso(alpha=self.alpha, max_iter=self.max_iter)
+            self.model.fit(X_train, y_train)
+
         self.fitted = True
         self.selected_features_ = self.model.feature_names_in_[self.model.coef_ != 0]
         self.coefficients_ = pd.Series(self.model.coef_, index=self.model.feature_names_in_)
@@ -50,3 +62,8 @@ class lasso_model():
         if not self.fitted:
             raise Exception("Model is not fitted yet. Call 'fit' first.")
         return self.coefficients_
+
+    def get_best_alpha(self):
+        if self.best_alpha_ is None:
+            raise Exception("Alpha was not selected automatically or model not fitted yet.")
+        return self.best_alpha_
