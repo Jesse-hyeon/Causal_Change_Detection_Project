@@ -19,7 +19,7 @@ with open(config_path, "r") as f:
 
 # 데이터 불러오기
 def load_data(config, method=None):
-    file_path = os.path.join(base_path, "input", "Daily_data.csv")
+    file_path = os.path.join(base_path, "input", "All_data.csv")
 
     raw_data = pd.read_csv(file_path, parse_dates=["date"])
     raw_data.set_index("date", inplace=True)
@@ -38,6 +38,7 @@ def load_data(config, method=None):
         data = data.resample("ME").mean()
     else:
         data = data[-600: ]  # 일별 데이터일 경우 최근 600일만 사용
+        # data = data
 
     # 스케일링
     scaler = StandardScaler()
@@ -50,8 +51,8 @@ if __name__ == "__main__":
     print("Test script started!")
 
     # 사용할 기법 선택
-    # Lasso, PCMCIPlUS, VARLiNGAM, NBCB
-    methods = ["Lasso", "VARLiNGAM", "NBCB"]
+    # "Lasso", "PCMCI", "VARLiNGAM", "NBCB", "CBNB"
+    methods = ["Lasso", "PCMCI", "VARLiNGAM", "NBCB", "CBNB"]
 
     # 결과 feature들을 저장할 딕셔너리
     feature_sets = {}
@@ -75,7 +76,7 @@ if __name__ == "__main__":
             result = selector.select_features()
 
             # NBCB의 경우 결과가 딕셔너리 내 'com_gold_causes' key에 저장되어 있음
-            if method == "NBCB":
+            if method in ["NBCB", "CBNB"]:
                 selected_features = result.get("com_gold_causes", [])
             else:
                 # 그 외의 경우 result가 바로 feature list라고 가정

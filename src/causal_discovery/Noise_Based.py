@@ -11,7 +11,7 @@ class varlingam_model:
         # 모델 생성
         self.model = VARLiNGAM(
             lags=self.tau_max,
-            criterion='bic',
+            criterion="HQIC",
             prune=False
         )
 
