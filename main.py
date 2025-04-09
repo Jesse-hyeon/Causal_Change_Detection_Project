@@ -36,6 +36,10 @@ random.seed(fix_seed)
 torch.manual_seed(fix_seed)
 np.random.seed(fix_seed)
 
+# 🔒 GPU 연산도 결정적으로 만들기 위한 추가 설정
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 ### 하이퍼파라미터 범위 정보
 param_ranges = {
     "d_model": [512, 640, 896],

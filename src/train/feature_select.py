@@ -3,6 +3,7 @@ import json
 
 import pandas as pd
 import numpy as np
+from typing import Dict, Any, List
 
 ### config(JSON 파일) 불러오기
 if platform.system() == 'Windows':
@@ -28,18 +29,15 @@ class FeatureSelector:
         y = self.data[target]
 
         test_size = config["pred_len"]
-
         X_train, X_test = X[:-test_size], X[-test_size:]
         y_train, y_test = y[:-test_size], y[-test_size:]
 
-        # 클래스 사용
         lasso = lasso_model(config=config, alpha=alpha)
         lasso.fit(X_train, y_train)
 
         selected_features = lasso.get_selected_features()
         print("Selected features:", selected_features)
-
-        return selected_features
+        return {"com_gold_causes": selected_features}
 
     def _select_features_pcmci(self, config, threshold=0.05):
         from src.causal_discovery.Constraint_Based import pcmci_model
@@ -53,13 +51,11 @@ class FeatureSelector:
 
         causal_features = selector.select_features_pcmci()
 
-        # 변수명만 추출해서 정리
         feature_names = sorted(set([var for var, lag in causal_features]))
-
         print(f"PCMCI+ selected features for {self.target_col}: {feature_names}")
-        return feature_names
+        return {"com_gold_causes": feature_names}
 
-    def _select_features_varlingam(self, config, threshold=0.5):
+    def _select_features_varlingam(self, config, threshold=0.1):
         from src.causal_discovery.Noise_Based import varlingam_model
 
         selector = varlingam_model(
@@ -70,51 +66,54 @@ class FeatureSelector:
         )
 
         selector.fit()
-
-        final_features = selector.select_features(return_only_var_names=True) # True -> 이름만
+        final_features = selector.select_features(return_only_var_names=True)
 
         print(f"[VarLiNGAM] selected features for {self.target_col}: {final_features}")
-        return final_features
+        return {"com_gold_causes": final_features}
 
-    def _select_features_nbcb(self, config,  threshold=0.5):
-        from src.causal_discovery.Hybrid import nbcb_model
+    def _select_features_nbcb(self, config,  threshold=0.2):
+        from src.causal_discovery.Hybrid import NBCBe
 
-        nbcb = nbcb_model(
+        model = NBCBe(
             data=self.data,
             tau_max=config['tau_max'],
             sig_level=0.05,
-            threshold = threshold,
-            linear=True,
+            linear=True
         )
-        full_result, com_gold_causes = nbcb.run()
 
-        if full_result is None:
-            raise ValueError("Error: NBCBw.run() returned None. Check the function implementation!")
+        model.run()
+        com_gold_causes = self._extract_com_gold_causes(model)
+        return {"full_result": model, "com_gold_causes": com_gold_causes}
 
-        return {
-            "full_result": full_result,
-            "com_gold_causes": com_gold_causes
-        }
+    def _select_features_cbnb(self, config,  threshold=0.2):
+        from src.causal_discovery.Hybrid import CBNBe
 
-    def _select_features_cbnb(self, config,  threshold=0.5):
-        from src.causal_discovery.Hybrid import cbnb_model
-
-        cbnb = cbnb_model(
+        model = CBNBe(
             data=self.data,
             tau_max=config['tau_max'],
             sig_level=0.05,
-            threshold = threshold,
-            linear=True,
+            linear=True
         )
-        full_result, com_gold_causes = cbnb.run()
 
-        if full_result is None:
-            raise ValueError("Error: CBNB.run() returned None. Check the function implementation!")
-
+        model.run()
+        com_gold_causes = self._extract_com_gold_causes(model)
         return {
-            "full_result": full_result,
+            "full_result": model,
             "com_gold_causes": com_gold_causes
         }
+
+    def _extract_com_gold_causes(self, model_obj) -> List[str]:
+        target = self.target_col
+        if target not in model_obj.window_causal_graph_dict:
+            print(f"{target} not in window_causal_graph_dict!")
+            return []
+
+        parents_info = model_obj.window_causal_graph_dict[target]
+        cause_vars = set()
+        for (cause_var, lag) in parents_info:
+            if cause_var != target:
+                cause_vars.add(cause_var)
+        return sorted(list(cause_vars))
 
     def select_features(self):
         if self.method == "Lasso":

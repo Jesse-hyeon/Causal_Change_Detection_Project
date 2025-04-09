@@ -1,213 +1,249 @@
-import numpy as np
+import networkx as nx
 import pandas as pd
+import numpy as np
+import tigramite.data_processing as pp
 
-from tigramite import data_processing as pp
-from tigramite.independence_tests.parcorr import ParCorr
 from tigramite.pcmci import PCMCI
-from lingam import VARLiNGAM
+from tigramite.independence_tests.parcorr import ParCorr
 
-class nbcb_model:
-    def __init__(self,
-                 data: pd.DataFrame,
-                 tau_max: int = 3,
-                 sig_level: float = 0.05,
-                 threshold: float = 0.01,
-                 linear: bool = True):
+from causallearn.graph.Edge import Edge
+from causallearn.graph.Endpoint import Endpoint
+from causallearn.graph.GeneralGraph import GeneralGraph
+from causallearn.graph.GraphNode import GraphNode
 
+from lingam.var_lingam import VARLiNGAM
+from lingam.resit import RESIT
+
+def run_varlingam(data, tau_max):
+    model = VARLiNGAM(lags=tau_max, criterion='bic', prune=False)
+    model.fit(data.values)
+    order = model.causal_order_
+    col_names = list(data.columns)
+    order = [col_names[i] for i in order]
+    order.reverse()
+
+    order_matrix = pd.DataFrame(np.zeros((data.shape[1], data.shape[1])),
+                                columns=col_names, index=col_names, dtype=int)
+    for col_i in order_matrix.index:
+        for col_j in order_matrix.columns:
+            if col_i != col_j:
+                idx_i = order.index(col_i)
+                idx_j = order.index(col_j)
+                if idx_i > idx_j:
+                    order_matrix.loc[col_j, col_i] = 2  # 원래 코드에서는 order_matrix[col_j].loc[col_i] = 2
+                    order_matrix.loc[col_i, col_j] = 1  # 원래 코드에서는 order_matrix[col_i].loc[col_j] = 1
+    return order_matrix
+
+class CBNBe:
+    def __init__(self, data, tau_max, sig_level=0.05, linear=True,
+                 model="linear", indtest="linear", cond_indtest="linear"):
         self.data = data
         self.tau_max = tau_max
         self.sig_level = sig_level
-        self.threshold = threshold
         self.linear = linear
+        self.model = model
+        self.indtest = indtest
+        self.cond_indtest = cond_indtest
 
-        self.target_var = "Com_Gold"
-        self.window_causal_graph_dict = {self.target_var: []}
+        self.col_names = list(data.columns)
+        d = len(self.col_names)
+        self.window_causal_graph = np.full((d, d, tau_max + 1), "---", dtype=object)
+        self.window_causal_graph_dict = {col: [] for col in self.col_names}
+        self.causal_graph = GeneralGraph([GraphNode(col) for col in self.col_names])
 
-    def _noise_based(self):
-        print("=== [NBCBw] Noise-Based Step: VarLiNGAM ===")
-        var_names = list(self.data.columns)
-        model = VARLiNGAM(lags=self.tau_max, criterion="HQIC", prune=False)
-        model.fit(self.data.values)
+    def constraint_based(self):
+        print("######## Running Constraint-based (PCMCI) ########")
+        df = pp.DataFrame(data=self.data.values, var_names=self.col_names)
+        cond_ind_test = ParCorr(significance='analytic') if self.linear else NotImplementedError(
+            "Non-linear not implemented.")
+        pcmci = PCMCI(dataframe=df, cond_ind_test=cond_ind_test)
+        results = pcmci.run_pcmci(tau_min=0, tau_max=self.tau_max, pc_alpha=self.sig_level)
+        skeleton = results["graph"]
+        d = len(self.col_names)
+        self.window_causal_graph = skeleton.copy()
 
-        adjacency_mats = model.adjacency_matrices_
-        n_vars = len(var_names)
-        target_idx = var_names.index(self.target_var)
+    def find_cycle_groups(self):
+        print("######## find_cycle_groups for 0-lag edges ########")
+        d = len(self.col_names)
+        G0 = nx.Graph()
+        for i in range(d):
+            for j in range(i + 1, d):
+                if self.window_causal_graph[i, j, 0] in ["o-o", "x-x", "-->", "<--"]:
+                    G0.add_edge(self.col_names[i], self.col_names[j])
+        list_cycles = nx.cycle_basis(G0)
+        cycle_groups = {}
+        idx = 0
+        for cyc in list_cycles:
+            cyc = sorted(list(cyc))
+            merged = False
+            for k in cycle_groups:
+                if len(set(cycle_groups[k]).intersection(cyc)) >= 2:
+                    cycle_groups[k] = list(set(cycle_groups[k]).union(cyc))
+                    merged = True
+                    break
+            if not merged:
+                cycle_groups[idx] = cyc
+                idx += 1
+        instantaneous_nodes = list(G0.nodes())
+        print("[DEBUG] found cycles:", list_cycles)
+        return cycle_groups, list_cycles, instantaneous_nodes
 
-        for lag_idx, mat in enumerate(adjacency_mats, start=1):
-            for j in range(n_vars):
-                if j == target_idx:
-                    continue
-                coef = mat[target_idx, j]
-                if abs(coef) > self.threshold:
-                    cause_name = var_names[j]
-                    self.window_causal_graph_dict[self.target_var].append((cause_name, -lag_idx))
-
-    def _constraint_based(self):
-        print("=== [NBCBw] Constraint-Based Step: PCMCI ===")
-
-        nb_candidates = set(self.window_causal_graph_dict[self.target_var])
-        var_names = list(self.data.columns)
-
-        # 대상 변수 + 후보 원인만 필터링
-        used_vars = [self.target_var] + [v for (v, _) in nb_candidates if v in var_names]
-        filtered_data = self.data[used_vars]
-
-        print("=== [DEBUG] 필터링된 변수 목록 ===")
-        print(used_vars)
-
-        dataframe = pp.DataFrame(
-            data=filtered_data.values,
-            var_names=used_vars
-        )
-        cond_ind_test = ParCorr(significance='analytic')
-        pcmci = PCMCI(
-            dataframe=dataframe,
-            cond_ind_test=cond_ind_test,
-            verbosity=1
-        )
-
-        results = pcmci.run_pcmci(
-            tau_min=0,
-            tau_max=self.tau_max,
-            pc_alpha=self.sig_level
-        )
-
-        p_matrix = results["p_matrix"]
-        target_idx = used_vars.index(self.target_var)
-
-        confirmed_causal_graph_dict = {self.target_var: []}
-
-        for (cause_name, lag_val) in nb_candidates:
-            if cause_name not in used_vars:
+    def noise_based(self):
+        print("######## Running Noise-based ########")
+        cycle_groups, list_cycles, instantaneous_nodes = self.find_cycle_groups()
+        print("[DEBUG] cycle_groups:", cycle_groups)
+        print("[DEBUG] instantaneous_nodes:", instantaneous_nodes)
+        if len(instantaneous_nodes) < 2:
+            return
+        for group in cycle_groups.values():
+            parents = list(set(self.col_names) - set(group))
+            sub_data = self.data[group + parents]
+            try:
+                model = VARLiNGAM(lags=self.tau_max, criterion='bic', prune=False)
+                model.fit(sub_data.values)
+            except Exception as e:
+                print(f"[ERROR] VARLiNGAM failed: {e}")
                 continue
-            j = used_vars.index(cause_name)
-            tau = -lag_val
+            order_idx = model.causal_order_
+            sub_cols = sub_data.columns.tolist()
+            ordered_vars = [sub_cols[i] for i in order_idx]
+            for xi in group:
+                for xj in group:
+                    if xi != xj:
+                        if ordered_vars.index(xi) > ordered_vars.index(xj):
+                            i = self.col_names.index(xi)
+                            j = self.col_names.index(xj)
+                            if self.window_causal_graph[i, j, 0] in ["o-o", "x-x", "-->", "<--"]:
+                                self.window_causal_graph[i, j, 0] = "<--"
+                                self.window_causal_graph[j, i, 0] = "-->"
+                                print(f"[noise_based orientation] {xj} -> {xi} (lag=0)")
 
-            # 에러 방지
-            if tau >= p_matrix.shape[2]:
-                print(f"[⚠ 경고] tau={tau}가 p_matrix에 없음. 무시됨.")
-                continue
-
-            pval = p_matrix[target_idx, j, tau]
-
-            if pval < self.sig_level:
-                confirmed_causal_graph_dict[self.target_var].append((cause_name, lag_val))
-                print(f"[✓ CB 통과] {cause_name} (lag {lag_val}) → {self.target_var} | p={pval:.5f}")
-            else:
-                print(f"[✗ CB 탈락] {cause_name} (lag {lag_val}) → {self.target_var} | p={pval:.5f}")
-
-        self.window_causal_graph_dict = confirmed_causal_graph_dict
-
-        print("\n=== [CB] Final window_causal_graph_dict (filtered) ===")
-        print(f"{self.target_var}: {self.window_causal_graph_dict[self.target_var]}")
+    def construct_summary_causal_graph(self):
+        print("######## Construct summary causal graph ########")
+        d = len(self.col_names)
+        summary_matrix = pd.DataFrame(np.zeros((d, d)), columns=self.col_names, index=self.col_names)
+        for i in range(d):
+            for j in range(d):
+                for t in range(self.tau_max + 1):
+                    if self.window_causal_graph[i, j, t] == "-->":
+                        src, dst = self.col_names[i], self.col_names[j]
+                        if (src, -t) not in self.window_causal_graph_dict[dst]:
+                            self.window_causal_graph_dict[dst].append((src, -t))
+                            summary_matrix.loc[src, dst] = 1
+                    elif self.window_causal_graph[i, j, t] == "<--":
+                        src, dst = self.col_names[i], self.col_names[j]
+                        if (dst, -t) not in self.window_causal_graph_dict[src]:
+                            self.window_causal_graph_dict[src].append((dst, -t))
+                            summary_matrix.loc[dst, src] = 1
+        for i in range(d):
+            for j in range(d):
+                if i != j:
+                    src, dst = self.col_names[i], self.col_names[j]
+                    if summary_matrix.loc[src, dst] == 1 and summary_matrix.loc[dst, src] == 1:
+                        self.causal_graph.add_edge(Edge(GraphNode(src), GraphNode(dst), Endpoint.ARROW, Endpoint.ARROW))
+                    elif summary_matrix.loc[src, dst] == 1:
+                        self.causal_graph.add_edge(Edge(GraphNode(src), GraphNode(dst), Endpoint.TAIL, Endpoint.ARROW))
+                    elif summary_matrix.loc[dst, src] == 1:
+                        self.causal_graph.add_edge(Edge(GraphNode(dst), GraphNode(src), Endpoint.TAIL, Endpoint.ARROW))
 
     def run(self):
-        self._noise_based()
-        self._constraint_based()
+        self.constraint_based()
+        print(self.window_causal_graph, "(after constraint_based)")
+        self.noise_based()
+        print(self.window_causal_graph, "(after noise_based)")
+        self.construct_summary_causal_graph()
+        print("[Final] window_causal_graph_dict:", self.window_causal_graph_dict)
 
-        com_gold_causes = [cause for (cause, lag) in self.window_causal_graph_dict[self.target_var]]
-        com_gold_causes = list(dict.fromkeys(com_gold_causes))
-
-        return self.window_causal_graph_dict, com_gold_causes
-
-class cbnb_model:
-    def __init__(self,
-                 data: pd.DataFrame,
-                 tau_max: int = 3,
-                 sig_level: float = 0.1,
-                 threshold: float = 0.01,
-                 linear: bool = True):
-
+class NBCBe:
+    def __init__(self, data, tau_max, sig_level=0.05, linear=True,
+                 model="linear", indtest="linear", cond_indtest="linear"):
         self.data = data
         self.tau_max = tau_max
         self.sig_level = sig_level
-        self.threshold = threshold
         self.linear = linear
+        self.model = model
+        self.indtest = indtest
+        self.cond_indtest = cond_indtest
 
-        self.target_var = "Com_Gold"
-        self.window_causal_graph_dict = {self.target_var: []}
+        self.col_names = list(data.columns)
+        self.order_matrix = None # 깃허브 코드에서 causal_order과 동일한 부분
+        self.forbidden_orientation = []
+        self.window_causal_graph_dict = {col: [] for col in self.col_names}
+        self.causal_graph = GeneralGraph([GraphNode(col) for col in self.col_names])
 
-    def _constraint_based(self):
-        print("=== [CBNB] Constraint-Based Step: PCMCI ===")
-        var_names = list(self.data.columns)
-        dataframe = pp.DataFrame(data=self.data.values, var_names=var_names)
+    def noise_based(self):
+        if self.linear:
+            self.order_matrix = run_varlingam(self.data, self.tau_max)
+        else: #여기 비선형 안쓰면 그냥 바꾸기
+            self.order_matrix = run_resit(self.data)
+
+        print("Order Matrix from VarLiNGAM:")
+        print(self.order_matrix)
+
+        #  self.order_matrix가 causal_order과 동일한 역할을 함
+        for i in self.col_names:
+            for j in self.col_names:
+                if i != j:
+                    if self.order_matrix.loc[i, j] == 2 and self.order_matrix.loc[j, i] == 1:
+                        src_index = self.col_names.index(j)
+                        dst_index = self.col_names.index(i)
+                        if (src_index, dst_index) not in self.forbidden_orientation:
+                            self.forbidden_orientation.append((src_index, dst_index))
+        print("Forbidden Orientations (from VarLiNGAM):", self.forbidden_orientation)
+
+    def constraint_based(self):
+        print("######## Running Constraint-based (PCMCI) ########")
+        df = pp.DataFrame(data=self.data.values, var_names=self.col_names)
         cond_ind_test = ParCorr(significance='analytic')
+        pcmci = PCMCI(dataframe=df, cond_ind_test=cond_ind_test)
+        results = pcmci.run_pcmci(tau_min=0, tau_max=self.tau_max, pc_alpha=self.sig_level)
+        skeleton = results["graph"]
 
-        pcmci = PCMCI(
-            dataframe=dataframe,
-            cond_ind_test=cond_ind_test,
-            verbosity=1
-        )
+        summary_matrix = pd.DataFrame(np.zeros((self.data.shape[1], self.data.shape[1])),
+                                      index=self.data.columns, columns=self.data.columns, dtype=int)
+        for i in range(len(self.col_names)):
+            for j in range(len(self.col_names)):
+                if skeleton[i, j, 0] in ["o-o", "x-x", "-->", "<--"]:
+                    summary_matrix.iloc[i, j] = 1
 
-        results = pcmci.run_pcmci(
-            tau_min=0,
-            tau_max=self.tau_max,
-            pc_alpha=self.sig_level
-        )
+        for col_i in self.data.columns:
+            for col_j in self.data.columns:
+                if col_i != col_j and summary_matrix.loc[col_i, col_j] == 1 and summary_matrix.loc[col_j, col_i] == 1:
+                    if self.order_matrix.loc[col_i, col_j] == 1:
+                        summary_matrix.loc[col_j, col_i] = 0
+                    elif self.order_matrix.loc[col_i, col_j] == 2:
+                        summary_matrix.loc[col_i, col_j] = 0
 
-        p_matrix = results["p_matrix"]
-        target_idx = var_names.index(self.target_var)
+        print("Summary Matrix after background knowledge adjustment:")
+        print(summary_matrix)
 
-        cb_candidates = []
+        # summary_matrix를 바탕으로 causallearn 그래프 구성
+        for col_i in self.data.columns:
+            for col_j in self.data.columns:
+                if col_i != col_j:
+                    if summary_matrix.loc[col_i, col_j] == 1 and summary_matrix.loc[col_j, col_i] == 1:
+                        self.causal_graph.add_edge(
+                            Edge(GraphNode(col_i), GraphNode(col_j), Endpoint.ARROW, Endpoint.ARROW)
+                        )
+                    elif summary_matrix.loc[col_i, col_j] == 1:
+                        self.causal_graph.add_edge(
+                            Edge(GraphNode(col_i), GraphNode(col_j), Endpoint.TAIL, Endpoint.ARROW)
+                        )
+                    elif summary_matrix.loc[col_j, col_i] == 1:
+                        self.causal_graph.add_edge(
+                            Edge(GraphNode(col_j), GraphNode(col_i), Endpoint.TAIL, Endpoint.ARROW)
+                        )
 
-        for j in range(len(var_names)):
-            if j == target_idx:
-                continue
-            for tau in range(self.tau_max + 1):
-                pval = p_matrix[j, target_idx, tau]
-
-                if pval < self.sig_level:
-                    cause_name = var_names[j]
-                    lag_val = -tau
-                    cb_candidates.append((cause_name, lag_val))
-                    print(f"[✓ CB 후보] {cause_name} (lag {lag_val}) → {self.target_var} | p={pval:.5f}")
-
-        self.window_causal_graph_dict[self.target_var] = cb_candidates
-
-    def _noise_based(self):
-        print("\n=== [CBNB] Noise-Based Step: VarLiNGAM (후보 검증) ===")
-        var_names = list(self.data.columns)
-
-        # 🔧 수정된 부분: criterion=None으로 설정
-        model = VARLiNGAM(lags=self.tau_max, criterion="HQIC", prune=False)
-        model.fit(self.data.values)
-        adjacency_mats = model.adjacency_matrices_
-
-        actual_tau_max = len(adjacency_mats)
-        print(f"[DEBUG] VarLiNGAM 추정된 시차 수 (강제 사용): {actual_tau_max}")
-
-        target_idx = var_names.index(self.target_var)
-        cb_candidates = self.window_causal_graph_dict[self.target_var]
-        final_result = []
-
-        for (cause_name, lag_val) in cb_candidates:
-            cause_idx = var_names.index(cause_name)
-            tau = -lag_val
-
-            # 유효성 검사
-            if tau <= 0 or tau > actual_tau_max:
-                print(f"[건너뜀] Invalid tau={tau} for {cause_name} (lag {lag_val}) | 설정된 tau_max={self.tau_max}, 실제={actual_tau_max}")
-                continue
-
-            coef = adjacency_mats[tau - 1][target_idx, cause_idx]
-            print(f"[계수 확인] {cause_name} (lag {lag_val}) → {self.target_var} | coef={coef:.5f}")
-
-            if abs(coef) > self.threshold:
-                final_result.append((cause_name, lag_val))
-                print(f"[✓ NB 통과] {cause_name} (lag {lag_val}) → {self.target_var} | coef={coef:.5f}")
-            else:
-                print(f"[✗ NB 탈락] {cause_name} (lag {lag_val}) → {self.target_var} | coef={coef:.5f}")
-
-        self.window_causal_graph_dict[self.target_var] = final_result
-
-        print("\n=== [CBNB] 최종 window_causal_graph_dict ===")
-        print(f"{self.target_var}: {self.window_causal_graph_dict[self.target_var]}")
+        for src in self.data.columns:
+            for dst in self.data.columns:
+                if src != dst and summary_matrix.loc[src, dst] == 1:
+                    self.window_causal_graph_dict[dst].append((src, 0))
+        print("Window Causal Graph Dict:")
+        print(self.window_causal_graph_dict)
 
     def run(self):
-        self._constraint_based()
-        self._noise_based()
-
-        com_gold_causes = [cause for (cause, lag) in self.window_causal_graph_dict[self.target_var]]
-        com_gold_causes = list(dict.fromkeys(com_gold_causes))
-
-        return self.window_causal_graph_dict, com_gold_causes
+        self.noise_based()
+        print(self.window_causal_graph_dict, "(after noise_based)")
+        self.constraint_based()
+        print(self.window_causal_graph_dict, "(after constraint_based)")
+        print("Final Causal Graph:", self.causal_graph)

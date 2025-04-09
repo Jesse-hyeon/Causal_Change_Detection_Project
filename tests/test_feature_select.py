@@ -75,25 +75,20 @@ if __name__ == "__main__":
         try:
             result = selector.select_features()
 
-            # NBCB의 경우 결과가 딕셔너리 내 'com_gold_causes' key에 저장되어 있음
-            if method in ["NBCB", "CBNB"]:
-                selected_features = result.get("com_gold_causes", [])
-            else:
-                # 그 외의 경우 result가 바로 feature list라고 가정
-                selected_features = result
-
+            com_gold_causes = result["com_gold_causes"]
+            print(f"[{method}] Com_Gold에 영향을 미치는 변수:", com_gold_causes)
             # feature 정리
-            selected_features = [feat for feat in selected_features if feat != "Com_Gold"]
+            com_gold_causes = [feat for feat in com_gold_causes if feat != "Com_Gold"]
 
             # "date"가 없으면 맨 앞에 추가 (정상적인 리스트 연결!)
-            if "date" not in selected_features:
-                selected_features = ["date"] + selected_features
+            if "date" not in com_gold_causes:
+                com_gold_causes = ["date"] + com_gold_causes
 
             # "Com_Gold"는 무조건 맨 뒤에 추가
-            selected_features.append("Com_Gold")
+            com_gold_causes.append("Com_Gold")
 
-            feature_sets[method] = selected_features
-            print(f"Selected features for {method}: {selected_features}")
+            feature_sets[method] = com_gold_causes
+            print(f"Selected features for {method}: {com_gold_causes}")
 
         except Exception as e:
             print(f"Error occurred while testing method {method}: {e}")
