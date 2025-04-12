@@ -110,7 +110,7 @@ class HyperParameterTuner:
 
     def run_study(self):
         if self.base_config.get("use_randomsearch", False):
-            sampler = RandomSampler(seed=self.base_config.get("seed", 42))
+            sampler = RandomSampler()
         else:
             sampler = GridSampler(self.param_ranges)
 
@@ -133,6 +133,7 @@ class HyperParameterTuner:
             trainer_final = Exp_Main_former(final_args, final_run=True)
         else:
             trainer_final = Exp_Main_rnn(final_args, final_run=True)
+
         trainer_final.train(setting="final_experiment")
         trainer_final.test(setting="final_experiment", test=0)
         print("Final model training and testing complete.")

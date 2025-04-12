@@ -40,8 +40,8 @@ def load_data(config, method=None):
         data = data.resample("ME").mean()
     else:
         # data = data[-1000: ]  # 일별 데이터일 경우 최근 600일만 사용
-        # data = data[data.index >= "2020-01-01"]
-        data = data
+        data = data[data.index >= "2020-01-01"]
+        # data = data
 
     # 스케일링
     scaler = StandardScaler()
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     # 사용할 기법 선택
     # "Lasso", "PCMCI", "VARLiNGAM", "NBCB", "CBNB"
-    methods = ["Lasso", "PCMCI", "VARLiNGAM", "NBCB", "CBNB"]
+    methods = ["VARLiNGAM"]
 
     # 결과 feature들을 저장할 딕셔너리
     feature_sets = {}

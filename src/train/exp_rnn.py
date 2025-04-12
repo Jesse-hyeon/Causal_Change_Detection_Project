@@ -294,13 +294,14 @@ class Exp_Main_rnn(Exp_Basic_rnn):
         mae, mse, rmse, mape, mspe, r2, adj_r2, d_stat = metric(preds, trues, self.config["enc_in"])
 
         if self.final_run and self.config.get("use_wandb", False):
+            print("self.final_run",self.final_run)
             wandb.log({
                 "test_mae": mae,
                 "test_mape": mape,
-                "test_r2" : r2,
+                "test_r2": r2,
                 "test_adj_r2": adj_r2,
                 "test_d_stat": d_stat
-            })
+            }, step=999999)
 
         print('mape:{:.4f}, mae:{:.2f}, adj_r2:{:.2f}, r2:{:.2f}, d_stat:{:.2f}'.format(mape, mae, adj_r2, r2, d_stat))
         f = open("result.txt", 'a')

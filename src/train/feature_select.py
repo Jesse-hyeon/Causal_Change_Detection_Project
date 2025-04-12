@@ -65,7 +65,14 @@ class FeatureSelector:
         )
 
         selector.fit()
-        final_features = selector.select_features(return_only_var_names=True)
+
+        # final_features = selector.select_features(return_only_var_names=True)
+
+        # Step 1: 인과변수 전체 선택
+        raw_features = selector.select_features(return_only_var_names=True)
+
+        # Step 2: 다중공선성 필터링
+        final_features = selector.filter_selected_features(raw_features)
 
         print(f"[VarLiNGAM] selected features for {self.target_col}: {final_features}")
         return {"com_gold_causes": final_features}

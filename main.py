@@ -47,7 +47,8 @@ with open(feature_json_path, "r") as f:
     feature_sets = json.load(f)
 
 # 실험할 인과 추론 기법 수동 설정 (None이면 전체 사용)
-selected_methods = ["NBCB"]
+# ["all", "Lasso", "PCMCI", "VARLiNGAM", "NBCB", "CBNB"]
+selected_methods = ["all", "Lasso", "PCMCI", "VARLiNGAM", "NBCB", "CBNB"]
 model_list = ["rnn"]
 pred_len_list = [90]
 
@@ -73,8 +74,21 @@ def run_model(config):
             print("=" * 50 + "\n")
 
             for cd_name in causal_discovery_list:
+                print("-" * 50)
+                print(f"🔍 Causal Discovery Method: {cd_name}")
+                print("-" * 50)
+
                 config["feature_set"] = feature_sets[cd_name]
+                print("len_feature set",len(config["feature_set"]))
                 print(config["feature_set"])
+
+                # ✅ wandb 기록 조건 추가
+                if config.get("use_wandb", False):
+                    wandb.init(
+                        project=config.get("wandb_project", "default_project"),
+                        name=f"{model_name}_{cd_name}",
+                        config=config
+                    )
 
                 if config["model"] in config["former_model"]:
                     len_in_former = len(config["feature_set"]) - 1
@@ -124,5 +138,5 @@ def run_model(config):
 
 if __name__ == '__main__':
     # run_causal_discovery(base_config)
-    base_config["wandb_project"] = "Grid_search_test"
+    base_config["wandb_project"] = "그래프 이쁘게 나오는지 확인"
     run_model(base_config)
