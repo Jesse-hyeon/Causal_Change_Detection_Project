@@ -9,7 +9,7 @@
 
     "data": "custom",
     "root_path": "/Users/choeseoheon/Desktop/Causal-Discovery/input/",
-    "data_path": "Daily_data.csv",
+    "data_path": "All_data.csv",
     "features": "MS",
     "target": "Com_Gold",
     "freq": "b",
@@ -60,7 +60,8 @@
     "use_gpu": false,
     "gpu": 0,
     "use_multi_gpu": false,
-    "use_wandb" : true,
+    "use_wandb" : false,
+    "use_randomsearch" : true,
 
     "p_hidden_dims": [
         128,

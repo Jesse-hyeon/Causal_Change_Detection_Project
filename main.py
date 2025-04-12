@@ -108,8 +108,10 @@ def run_model(config):
                     n_trials = None  # Grid search는 조합 수에 따라 자동 결정됨
 
                 tuner = HyperParameterTuner(config, param_ranges, n_splits=2, n_trials=n_trials or 1)
-                tuner.run_study()
-                tuner.train_final_model()
+                study = tuner.run_study()
+                if study.best_trial is not None:
+                    tuner.best_params = study.best_trial.params
+                    tuner.train_final_model()
 
                 # 현재 하이퍼파라미터 저장
                 if config.get("use_wandb", False):

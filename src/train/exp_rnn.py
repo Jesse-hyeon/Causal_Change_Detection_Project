@@ -87,35 +87,41 @@ class Exp_Main_rnn(Exp_Basic_rnn):
 
     def vali(self, vali_data, vali_loader, criterion):
         total_loss = []
+        all_preds = []
+        all_trues = []
+
         self.model.eval()
         with torch.no_grad():
             for i, (batch_x, batch_y) in enumerate(vali_loader):
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
 
-                # ✅ LSTM에서는 인코더-디코더 구조가 없으므로 바로 예측
+                # ✅ LSTM은 인코더-디코더 구조 없음
                 if self.config["use_amp"]:
                     with torch.cuda.amp.autocast():
                         outputs = self.model(batch_x)
                 else:
                     outputs = self.model(batch_x)
 
-                # ✅ 원래 코드처럼 예측값과 정답을 마지막 `pred_len` 구간에서 비교
                 f_dim = -1 if self.config["features"] == 'MS' else 0
                 outputs = outputs[:, -self.config["pred_len"]:, f_dim:]
                 batch_y = batch_y[:, -self.config["pred_len"]:, f_dim:]
 
-                # ✅ 원래 코드처럼 detach() 후 loss 계산
                 pred = outputs.detach().cpu()
                 true = batch_y.detach().cpu()
 
                 loss = criterion(pred, true)
 
                 total_loss.append(loss.item())
+                all_preds.append(pred)
+                all_trues.append(true)
 
-        total_loss = np.average(total_loss)
+        avg_loss = np.mean(total_loss)
+        all_preds = torch.cat(all_preds, dim=0).numpy()  # (batch, seq, 1)
+        all_trues = torch.cat(all_trues, dim=0).numpy()
+
         self.model.train()
-        return total_loss
+        return avg_loss, all_preds, all_trues
 
     def train(self, setting):
         train_data, train_loader = self._get_data(flag='train')
@@ -184,8 +190,8 @@ class Exp_Main_rnn(Exp_Basic_rnn):
             train_loss = np.average(train_loss)
 
             if not self.final_run:
-                vali_loss = self.vali(vali_data, vali_loader, criterion)
-                test_loss = self.vali(test_data, test_loader, criterion)
+                vali_loss, _, _ = self.vali(vali_data, vali_loader, criterion)
+                test_loss, _, _ = self.vali(test_data, test_loader, criterion)
                 print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
                     epoch + 1, train_steps, train_loss, vali_loss, test_loss))
 

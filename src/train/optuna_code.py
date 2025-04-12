@@ -6,6 +6,17 @@ from src.train.exp_former import Exp_Main_former
 from src.train.exp_rnn import Exp_Main_rnn
 from optuna.samplers import GridSampler, RandomSampler
 
+def is_flat(preds, threshold=0.005):
+    """
+    예측값이 거의 일정한(flat) 경우 True를 반환합니다.
+    상대적 표준편차 기준 사용.
+    """
+    std = np.std(preds)
+    mean = np.mean(preds)
+    if mean == 0:
+        return std < threshold
+    return (std / abs(mean)) < threshold
+
 class FixedPredLenSplit(BaseCrossValidator):
     def __init__(self, n_splits, pred_len):
         self.n_splits = n_splits
@@ -34,13 +45,19 @@ class HyperParameterTuner:
 
     def _train_and_evaluate(self, args, setting="trial_experiment"):
         if args["model"] in args['former_model']:
-            trainer_initial = Exp_Main_former(args, final_run=False)
+            trainer = Exp_Main_former(args, final_run=False)
         else:
-            trainer_initial = Exp_Main_rnn(args, final_run=False)
-        trainer_initial.train(setting=setting)
-        vali_data, vali_loader = trainer_initial._get_data(flag='val')
-        criterion = trainer_initial._select_criterion()
-        val_loss = trainer_initial.vali(vali_data, vali_loader, criterion)
+            trainer = Exp_Main_rnn(args, final_run=False)
+
+        trainer.train(setting=setting)
+        val_data, val_loader = trainer._get_data(flag='val')
+        criterion = trainer._select_criterion()
+        val_loss, preds, trues = trainer.vali(val_data, val_loader, criterion)
+
+        if is_flat(preds):
+            print("⚠️ 예측이 평평하여 NaN 리턴 (스킵 대상)")
+            return np.nan
+
         return val_loss
 
     def _run_trial(self, args):
