@@ -52,16 +52,15 @@ class FeatureSelector:
         causal_features = selector.select_features_pcmci()
 
         feature_names = sorted(set([var for var, lag in causal_features]))
-        print(f"PCMCI+ selected features for {self.target_col}: {feature_names}")
+        print(f"PCMCI selected features for {self.target_col}: {feature_names}")
         return {"com_gold_causes": feature_names}
 
-    def _select_features_varlingam(self, config, threshold=0.1):
+    def _select_features_varlingam(self, config):
         from src.causal_discovery.Noise_Based import varlingam_model
 
         selector = varlingam_model(
             data=self.data,
             tau_max=config['tau_max'],
-            threshold=threshold,
             target_var=self.target_col
         )
 

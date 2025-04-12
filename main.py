@@ -40,13 +40,6 @@ np.random.seed(fix_seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-### 하이퍼파라미터 범위 정보
-param_ranges = {
-    "d_model": [512, 640, 896],
-    "n_heads": [2, 4, 6, 8],
-    "activation": ["relu", "gelu"]
-}
-
 ### Feature set JSON 불러오기
 feature_json_path = os.path.join(base_path, "output", "feature_sets.json")
 
@@ -54,8 +47,8 @@ with open(feature_json_path, "r") as f:
     feature_sets = json.load(f)
 
 # 실험할 인과 추론 기법 수동 설정 (None이면 전체 사용)
-selected_methods = None
-model_list = ["lstm"]
+selected_methods = ["NBCB"]
+model_list = ["rnn"]
 pred_len_list = [90]
 
 if selected_methods is not None:
@@ -80,32 +73,43 @@ def run_model(config):
             print("=" * 50 + "\n")
 
             for cd_name in causal_discovery_list:
-                print("-" * 50)
-                print(f"🔍 Causal Discovery Method: {cd_name}")
-                print("-" * 50)
-
                 config["feature_set"] = feature_sets[cd_name]
                 print(config["feature_set"])
 
-                # ✅ wandb 기록 조건 추가
-                if config.get("use_wandb", False):
-                    wandb.init(
-                        project=config.get("wandb_project", "default_project"),
-                        name=f"{pred_len}_{model_name}_{cd_name}",
-                        config=config
-                    )
-
-                if config["model"] in config["former_model"]:  # Transformer 기반 모델
+                if config["model"] in config["former_model"]:
                     len_in_former = len(config["feature_set"]) - 1
                     config["enc_in"] = len_in_former
                     config["dec_in"] = len_in_former
-                else:  # RNN 기반 모델
+                else:
                     len_in_rnn = len(config["feature_set"]) - 1 + 3
                     config["enc_in"] = len_in_rnn
                     config["dec_in"] = len_in_rnn
 
-                tuner = HyperParameterTuner(config, param_ranges, n_splits=1)
+                # 🔁 Grid vs Random 분기
+                if config.get("use_randomsearch", False):
+                    param_ranges = {
+                        "d_model": {"type": "int", "low": 128, "high": 1024, "step": 128},
+                        "n_heads": {"type": "int", "low": 2, "high": 16, "step": 2},
+                        "e_layers": {"type": "int", "low": 1, "high": 4},
+                        "d_layers": {"type": "int", "low": 1, "high": 3},
+                        "d_ff": {"type": "int", "low": 512, "high": 4096, "step": 512},
+                        "dropout": {"type": "float", "low": 0.0, "high": 0.5},
+                        "activation": {"type": "categorical", "choices": ["relu", "gelu"]},
+                        "batch_size": {"type": "categorical", "choices": [16, 32, 64]},
+                        "learning_rate": {"type": "float", "low": 1e-5, "high": 1e-3, "log": True}
+                    }
+                    n_trials = config.get("n_trials", 2)
+                else:
+                    param_ranges = {
+                        "d_model": [512, 640, 896],
+                        "n_heads": [2, 4, 8],
+                        "activation": ["relu", "gelu"]
+                    }
+                    n_trials = None  # Grid search는 조합 수에 따라 자동 결정됨
+
+                tuner = HyperParameterTuner(config, param_ranges, n_splits=2, n_trials=n_trials or 1)
                 tuner.run_study()
+                tuner.train_final_model()
 
                 # 현재 하이퍼파라미터 저장
                 if config.get("use_wandb", False):

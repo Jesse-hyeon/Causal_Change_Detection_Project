@@ -15,7 +15,7 @@ from lingam.var_lingam import VARLiNGAM
 from lingam.resit import RESIT
 
 def run_varlingam(data, tau_max):
-    model = VARLiNGAM(lags=tau_max, criterion='bic', prune=False)
+    model = VARLiNGAM(lags=tau_max, criterion='bic', prune=True)
     model.fit(data.values)
     order = model.causal_order_
     col_names = list(data.columns)
@@ -99,7 +99,7 @@ class CBNBe:
             parents = list(set(self.col_names) - set(group))
             sub_data = self.data[group + parents]
             try:
-                model = VARLiNGAM(lags=self.tau_max, criterion='bic', prune=False)
+                model = VARLiNGAM(lags=self.tau_max, criterion='bic', prune=True)
                 model.fit(sub_data.values)
             except Exception as e:
                 print(f"[ERROR] VARLiNGAM failed: {e}")

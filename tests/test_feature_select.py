@@ -5,6 +5,8 @@ import json
 import pandas as pd
 from src.train.feature_select import FeatureSelector
 from sklearn.preprocessing import StandardScaler
+from statsmodels.tsa.stattools import adfuller
+
 
 ### config(JSON 파일) 불러오기
 if platform.system() == 'Windows':
@@ -19,7 +21,7 @@ with open(config_path, "r") as f:
 
 # 데이터 불러오기
 def load_data(config, method=None):
-    file_path = os.path.join(base_path, "input", "All_data.csv")
+    file_path = os.path.join(base_path, "input", "ALL_data.csv")
 
     raw_data = pd.read_csv(file_path, parse_dates=["date"])
     raw_data.set_index("date", inplace=True)
@@ -37,8 +39,9 @@ def load_data(config, method=None):
     elif config["CD_freq"] == "m":
         data = data.resample("ME").mean()
     else:
-        data = data[-600: ]  # 일별 데이터일 경우 최근 600일만 사용
-        # data = data
+        # data = data[-1000: ]  # 일별 데이터일 경우 최근 600일만 사용
+        # data = data[data.index >= "2020-01-01"]
+        data = data
 
     # 스케일링
     scaler = StandardScaler()

@@ -4,7 +4,7 @@ import optuna
 from sklearn.model_selection import BaseCrossValidator
 from src.train.exp_former import Exp_Main_former
 from src.train.exp_rnn import Exp_Main_rnn
-from optuna.samplers import GridSampler
+from optuna.samplers import GridSampler, RandomSampler
 
 class FixedPredLenSplit(BaseCrossValidator):
     def __init__(self, n_splits, pred_len):
@@ -24,12 +24,12 @@ class FixedPredLenSplit(BaseCrossValidator):
     def get_n_splits(self, X, y=None, groups=None):
         return self.n_splits
 
-
 class HyperParameterTuner:
-    def __init__(self, base_config, param_ranges, n_splits=3):
+    def __init__(self, base_config, param_ranges, n_splits=3, n_trials=50):
         self.base_config = base_config
-        self.param_ranges = param_ranges  # 리스트 형태
+        self.param_ranges = param_ranges
         self.n_splits = n_splits
+        self.n_trials = n_trials
         self.best_params = None
 
     def _train_and_evaluate(self, args, setting="trial_experiment"):
@@ -66,8 +66,22 @@ class HyperParameterTuner:
         return avg_loss
 
     def objective(self, trial):
-        sampled_params = {param: trial.suggest_categorical(param, values)
-                          for param, values in self.param_ranges.items()}
+        if self.base_config.get("use_randomsearch", False):
+            sampled_params = {}
+            for param, config in self.param_ranges.items():
+                if config.get("type") == "int":
+                    step = config.get("step", 1)
+                    sampled_params[param] = trial.suggest_int(param, config["low"], config["high"], step=step)
+                elif config.get("type") == "float":
+                    if config.get("log", False):
+                        sampled_params[param] = trial.suggest_float(param, config["low"], config["high"], log=True)
+                    else:
+                        sampled_params[param] = trial.suggest_float(param, config["low"], config["high"])
+                elif config.get("type") == "categorical":
+                    sampled_params[param] = trial.suggest_categorical(param, config["choices"])
+        else:
+            sampled_params = {param: trial.suggest_categorical(param, values)
+                              for param, values in self.param_ranges.items()}
 
         print(f"[Trial {trial.number}] Sampled Hyperparameters:")
         for k, v in sampled_params.items():
@@ -78,9 +92,13 @@ class HyperParameterTuner:
         return self._run_trial(config)
 
     def run_study(self):
-        sampler = GridSampler(self.param_ranges)
+        if self.base_config.get("use_randomsearch", False):
+            sampler = RandomSampler(seed=self.base_config.get("seed", 42))
+        else:
+            sampler = GridSampler(self.param_ranges)
+
         study = optuna.create_study(direction="minimize", sampler=sampler)
-        study.optimize(self.objective)
+        study.optimize(self.objective, n_trials=self.n_trials)
         print("Best hyperparameters:", study.best_params)
         self.best_params = study.best_params
         return study

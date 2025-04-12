@@ -131,6 +131,26 @@ def MAPE(pred, true):
 def MSPE(pred, true):
     return np.mean(np.square((pred - true) / true))
 
+def R2(pred, true):
+    pred = pred.flatten()
+    true = true.flatten()
+    ss_res = np.sum((true - pred) ** 2)
+    ss_tot = np.sum((true - np.mean(true)) ** 2)
+    return 1 - (ss_res / ss_tot)
+
+
+def ADJ_R2(pred, true, num_features):
+    pred = pred.flatten()
+    true = true.flatten()
+    n = len(true)
+    r2 = R2(pred, true)
+
+    denom = n - num_features - 1
+    if denom <= 0:
+        print(f"[경고] Adjusted R² 계산 실패: n({n}) - num_features({num_features}) - 1 <= 0")
+        return np.nan
+    return 1 - (1 - r2) * (n - 1) / denom
+
 def D_STAT(pred, true):
     """
     Compute directional accuracy D_stat (%)
@@ -150,12 +170,14 @@ def D_STAT(pred, true):
     return np.mean(correct_direction) * 100
 
 
-def metric(pred, true):
+def metric(pred, true, num_features):
     mae = MAE(pred, true)
     mse = MSE(pred, true)
     rmse = RMSE(pred, true)
     mape = MAPE(pred, true)
     mspe = MSPE(pred, true)
+    r2 =  R2(pred, true)
+    adj_r2 = ADJ_R2(pred, true, num_features)
     D_stat = D_STAT(pred, true)
 
-    return mae, mse, rmse, mape, mspe, D_stat
+    return mae, mse, rmse, mape, mspe, r2, adj_r2, D_stat

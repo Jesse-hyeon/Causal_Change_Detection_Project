@@ -285,19 +285,18 @@ class Exp_Main_rnn(Exp_Basic_rnn):
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
-        mae, mse, rmse, mape, mspe, d_stat = metric(preds, trues)
+        mae, mse, rmse, mape, mspe, r2, adj_r2, d_stat = metric(preds, trues, self.config["enc_in"])
 
         if self.final_run and self.config.get("use_wandb", False):
             wandb.log({
                 "test_mae": mae,
-                "test_mse": mse,
-                "test_rmse": rmse,
                 "test_mape": mape,
-                "test_mspe": mspe,
+                "test_r2" : r2,
+                "test_adj_r2": adj_r2,
                 "test_d_stat": d_stat
             })
 
-        print('mape:{:.4f}, mae:{:.2f}, d_stat:{:.2f}'.format(mape, mae, d_stat))
+        print('mape:{:.4f}, mae:{:.2f}, adj_r2:{:.2f}, r2:{:.2f}, d_stat:{:.2f}'.format(mape, mae, adj_r2, r2, d_stat))
         f = open("result.txt", 'a')
         f.write(setting + "  \n")
         f.write('mape:{}, mae:{}'.format(mape, mae))
