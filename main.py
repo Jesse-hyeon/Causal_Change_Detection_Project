@@ -48,7 +48,7 @@ with open(feature_json_path, "r") as f:
 
 # 실험할 인과 추론 기법 수동 설정 (None이면 전체 사용)
 # ["all", "Lasso", "PCMCI", "VARLiNGAM", "NBCB", "CBNB"]
-selected_methods = ["all", "Lasso", "PCMCI", "VARLiNGAM", "NBCB", "CBNB"]
+selected_methods = ["all", "Lasso", "PCMCI", "CBNB"]
 model_list = ["rnn"]
 pred_len_list = [90]
 
@@ -107,12 +107,10 @@ def run_model(config):
                         "e_layers": {"type": "int", "low": 1, "high": 4},
                         "d_layers": {"type": "int", "low": 1, "high": 3},
                         "d_ff": {"type": "int", "low": 512, "high": 4096, "step": 512},
-                        "dropout": {"type": "float", "low": 0.0, "high": 0.5},
-                        "activation": {"type": "categorical", "choices": ["relu", "gelu"]},
                         "batch_size": {"type": "categorical", "choices": [16, 32, 64]},
-                        "learning_rate": {"type": "float", "low": 1e-5, "high": 1e-3, "log": True}
+                        "seq_len": {"type": "categorical", "choices": [90, 120, 180]}
                     }
-                    n_trials = config.get("n_trials", 2)
+                    n_trials = config.get("n_trials", 1)
                 else:
                     param_ranges = {
                         "d_model": [512, 640, 896],
@@ -121,7 +119,7 @@ def run_model(config):
                     }
                     n_trials = None  # Grid search는 조합 수에 따라 자동 결정됨
 
-                tuner = HyperParameterTuner(config, param_ranges, n_splits=2, n_trials=n_trials or 1)
+                tuner = HyperParameterTuner(config, param_ranges, n_splits=1, n_trials=n_trials or 1)
                 study = tuner.run_study()
                 if study.best_trial is not None:
                     tuner.best_params = study.best_trial.params
@@ -130,8 +128,6 @@ def run_model(config):
                 # 현재 하이퍼파라미터 저장
                 if config.get("use_wandb", False):
                     wandb.config.update({"best_hyperparams": tuner.best_params})
-
-                tuner.train_final_model()
 
                 if config.get("use_wandb", False):
                     wandb.finish()

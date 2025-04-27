@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import Lasso, LassoCV
 from sklearn.metrics import mean_squared_error
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 class lasso_model():
     def __init__(self, config=None, alpha=0.1, max_iter=10000):
@@ -32,7 +33,6 @@ class lasso_model():
             self.model.fit(X_train, y_train)
             self.alpha = self.model.alpha_
             self.best_alpha_ = self.model.alpha_
-            print(f"[LassoCV] Best alpha selected: {self.best_alpha_:.5f}")
         else:
             self.model = Lasso(alpha=self.alpha, max_iter=self.max_iter)
             self.model.fit(X_train, y_train)
@@ -67,3 +67,48 @@ class lasso_model():
         if self.best_alpha_ is None:
             raise Exception("Alpha was not selected automatically or model not fitted yet.")
         return self.best_alpha_
+
+    def filter_features_by_multicollinearity(self, X_train, vif_thresh=5.0, corr_thresh=0.8):
+        """
+        get_selected_features() 결과를 기반으로 다중공선성 제거.
+        """
+        selected = list(self.get_selected_features())
+        coef_map = {k: abs(v) for k, v in self.get_coefficients().items() if k in selected}
+        X_selected = self.preprocess(X_train)[selected]
+
+        vif_vals = [variance_inflation_factor(X_selected.values, i) for i in range(X_selected.shape[1])]
+        vif_df = pd.DataFrame({"var": X_selected.columns, "vif": vif_vals})
+        high_vif = vif_df[vif_df["vif"] > vif_thresh]["var"].tolist()
+
+        corr_matrix = X_selected[high_vif].corr().abs()
+        groups = []
+        visited = set()
+
+        for col in corr_matrix.columns:
+            if col in visited:
+                continue
+            group = set([col])
+            for other in corr_matrix.columns:
+                if col != other and corr_matrix.loc[col, other] > corr_thresh:
+                    group.add(other)
+                    visited.add(other)
+            visited.update(group)
+            if len(group) > 1:
+                groups.append(group)
+
+        selected_final = []
+        selected_set = set()
+
+        for group in groups:
+            best = max(group, key=lambda var: abs(coef_map.get(var, 0)))
+            if best not in selected_set:
+                selected_final.append(best)
+                selected_set.add(best)
+
+        ungrouped = set(selected) - set().union(*groups)
+        for var in ungrouped:
+            if var not in selected_set:
+                selected_final.append(var)
+                selected_set.add(var)
+
+        return sorted(selected_final)

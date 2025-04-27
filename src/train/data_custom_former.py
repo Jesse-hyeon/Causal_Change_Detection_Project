@@ -43,13 +43,39 @@ class Dataset_Custom(Dataset):
         df_raw = pd.read_csv(os.path.join(self.root_path,
                                           self.data_path))
 
-        ### 변수 선택
-        df_raw = df_raw[self.feature_set]
+        ### 수정된 부분: feature_set이 튜플이면 lag 적용
+        if isinstance(self.feature_set[0], (list, tuple)):
+            lagged_df = pd.DataFrame(index=df_raw.index)
+            for feature, lag in self.feature_set:
+                if feature in df_raw.columns:
+                    if lag == 0:
+                        lagged_df[feature] = df_raw[feature]
+                    else:
+                        lagged_df[f"{feature}_lag{abs(lag)}"] = df_raw[feature].shift(-lag)
+                else:
+                    print(f"Warning: {feature} not found in df.columns")
+            df_raw = lagged_df
 
+            # ✅ lag 적용한 후 NaN 생긴 부분 제거
+            df_raw = df_raw.dropna().reset_index(drop=True)
+
+        else:
+            df_raw = df_raw[self.feature_set]
+
+        # 날짜 컬럼 복구
+        if 'date' not in df_raw.columns and 'date' in df_raw.index.names:
+            df_raw.reset_index(inplace=True)
+
+        ### 타겟과 날짜 정리
         cols = list(df_raw.columns)
         cols.remove(self.target)
-        cols.remove('date')
+        if 'date' in cols:
+            cols.remove('date')
+
         df_raw = df_raw[['date'] + cols + [self.target]]
+        ########### 수정 끝! ############
+
+        print("😂😂😂 df_raw columns", df_raw.columns)
 
         num_train = self.num_train
         # num_test = int(len(df_raw) * 0.1)

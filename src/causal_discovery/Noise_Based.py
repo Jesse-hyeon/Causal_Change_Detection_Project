@@ -3,7 +3,7 @@ from lingam import VARLiNGAM
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 class varlingam_model:
-    def __init__(self, data: pd.DataFrame, tau_max=3, target_var="Com_Gold"):
+    def __init__(self, data: pd.DataFrame, tau_max=5, target_var="Com_Gold"):
         self.data = data
         self.tau_max = tau_max
         self.target_var = target_var
@@ -94,6 +94,7 @@ class varlingam_model:
                 if cause_var in selected_vars and cause_var != self.target_var:
                     coef = mat[self.var_names.index(self.target_var), cause_idx]
                     if coef != 0:
+                        coef = float(coef)
                         coef_map[cause_var] = coef_map.get(cause_var, 0) + abs(coef)
 
         selected = []

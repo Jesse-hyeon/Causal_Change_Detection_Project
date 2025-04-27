@@ -21,7 +21,7 @@ with open(config_path, "r") as f:
 
 # 데이터 불러오기
 def load_data(config, method=None):
-    file_path = os.path.join(base_path, "input", "ALL_data.csv")
+    file_path = os.path.join(base_path, "input", "ALL_data_add.csv")
 
     raw_data = pd.read_csv(file_path, parse_dates=["date"])
     raw_data.set_index("date", inplace=True)
@@ -39,8 +39,8 @@ def load_data(config, method=None):
     elif config["CD_freq"] == "m":
         data = data.resample("ME").mean()
     else:
-        # data = data[-1000: ]  # 일별 데이터일 경우 최근 600일만 사용
-        data = data[data.index >= "2020-01-01"]
+        # data = data[-600: ]  # 일별 데이터일 경우 최근 600일만 사용
+        data = data[data.index >= "2020-04-06"]
         # data = data
 
     # 스케일링
@@ -49,18 +49,34 @@ def load_data(config, method=None):
 
     return data
 
-# 실행 시
+# JSON 저장 (줄바꿈 없이 깔끔하게)
+def save_pretty_json(data, path):
+    with open(path, 'w') as f:
+        f.write('{\n')
+        last_key = list(data.keys())[-1]
+        for key, value in data.items():
+            f.write(f'    "{key}": [\n')
+            for i, item in enumerate(value):
+                if isinstance(item, (list, tuple)):
+                    line = f'        ["{item[0]}", {item[1]}]'
+                else:
+                    line = f'        "{item}"'
+                if i != len(value) - 1:
+                    line += ','
+                f.write(line + '\n')
+            if key != last_key:
+                f.write('    ],\n')
+            else:
+                f.write('    ]\n')
+        f.write('}\n')
+
+# === 실행 부분 ===
 if __name__ == "__main__":
     print("Test script started!")
 
-    # 사용할 기법 선택
-    # "Lasso", "PCMCI", "VARLiNGAM", "NBCB", "CBNB"
-    methods = ["VARLiNGAM"]
-
-    # 결과 feature들을 저장할 딕셔너리
+    methods = ["Lasso", "PCMCI", "CBNB"]
     feature_sets = {}
 
-    # 모든 변수(feature)를 담은 "all" key 생성
     data = load_data(base_config, method=methods[0])
     all_features = ["date"] + list(data.columns)
     if "Com_Gold" in all_features:
@@ -68,43 +84,40 @@ if __name__ == "__main__":
     all_features.append("Com_Gold")
     feature_sets["all"] = all_features
 
-    # 각 기법(method)에 따른 feature selection 결과 처리
     target = "Com_Gold"
     for method in methods:
-        print("data shape: ", data.shape)
         print(f"\n=== Testing Feature Selection Method: {method} ===")
 
+        # ✅ 각 방법(method)마다 fresh하게 데이터 다시 로드!
+        data = load_data(base_config, method=method)
+
         selector = FeatureSelector(data=data, target_col=target, method=method)
+
         try:
             result = selector.select_features()
-
             com_gold_causes = result["com_gold_causes"]
-            print(f"[{method}] Com_Gold에 영향을 미치는 변수:", com_gold_causes)
-            # feature 정리
-            com_gold_causes = [feat for feat in com_gold_causes if feat != "Com_Gold"]
 
-            # "date"가 없으면 맨 앞에 추가 (정상적인 리스트 연결!)
-            if "date" not in com_gold_causes:
-                com_gold_causes = ["date"] + com_gold_causes
+            if isinstance(com_gold_causes[0], tuple):
+                processed = [("date", 0)] + [feat for feat in com_gold_causes if feat[0] != "Com_Gold"]
+                processed.append(("Com_Gold", 0))
+            else:
+                processed = ["date"] + [feat for feat in com_gold_causes if feat != "Com_Gold"]
+                processed.append("Com_Gold")
 
-            # "Com_Gold"는 무조건 맨 뒤에 추가
-            com_gold_causes.append("Com_Gold")
-
-            feature_sets[method] = com_gold_causes
-            print(f"Selected features for {method}: {com_gold_causes}")
+            feature_sets[method] = processed
 
         except Exception as e:
             print(f"Error occurred while testing method {method}: {e}")
 
-    # 최종 feature_sets 출력
+    # === 최종 저장 ===
     print("\nFinal feature sets:")
     for key, value in feature_sets.items():
         print(f"{key}: {value}")
 
-    # feature_sets를 JSON 파일로 저장 (저장 경로는 base_path 하위 output 폴더)
     output_dir = os.path.join(base_path, "output")
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "feature_sets.json")
-    with open(output_path, "w") as f:
-        json.dump(feature_sets, f, indent=4)
+
+    save_pretty_json(feature_sets, output_path)
+
     print(f"\nFeature sets JSON file saved at: {output_path}")

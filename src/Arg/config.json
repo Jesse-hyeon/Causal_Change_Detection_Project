@@ -9,14 +9,14 @@
 
     "data": "custom",
     "root_path": "/Users/choeseoheon/Desktop/Causal-Discovery/input/",
-    "data_path": "All_data.csv",
+    "data_path": "All_data_add.csv",
     "features": "MS",
     "target": "Com_Gold",
     "freq": "b",
     "checkpoints": "./checkpoints/",
     "CD_freq" : "d",
     "CD_pred_len" : 90,
-    "tau_max" : 5,
+    "tau_max" : 3,
 
     "num_train": 0,
     "num_valid": 0,

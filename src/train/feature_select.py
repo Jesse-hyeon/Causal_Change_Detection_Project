@@ -35,8 +35,13 @@ class FeatureSelector:
         lasso = lasso_model(config=config, alpha=alpha)
         lasso.fit(X_train, y_train)
 
-        selected_features = lasso.get_selected_features()
-        print("Selected features:", selected_features)
+        # 다중공선성 제거 X
+        # selected_features = list(lasso.get_selected_features())
+
+        # 다중공선성 제거 O
+        selected_features = lasso.filter_features_by_multicollinearity(X_train)
+
+        print(f"Lasso selected features: {selected_features}")
         return {"com_gold_causes": selected_features}
 
     def _select_features_pcmci(self, config, threshold=0.05):
@@ -49,11 +54,22 @@ class FeatureSelector:
             target_var=self.target_col
         )
 
+        # 1. ("feature", lag) 튜플 리스트 확보
         causal_features = selector.select_features_pcmci()
 
-        feature_names = sorted(set([var for var, lag in causal_features]))
-        print(f"PCMCI selected features for {self.target_col}: {feature_names}")
-        return {"com_gold_causes": feature_names}
+        # 2. 다중공선성 제거
+        # feature_name만 따로 뽑아서 다중공선성 필터링
+        feature_names = selector.filter_features_by_multicollinearity(causal_features)
+
+        # 3. 다중공선성 통과한 feature만 남기기
+        # ("feature", lag) 튜플 중에서 feature_name이 살아남은 것만 유지
+        selected_causal_features = [(var, lag) for (var, lag) in causal_features if var in feature_names]
+
+        print(f"PCMCI selected features for {self.target_col}: {selected_causal_features}")
+
+        return {
+            "com_gold_causes": selected_causal_features  # <-- 튜플 형태로 반환!
+        }
 
     def _select_features_varlingam(self, config):
         from src.causal_discovery.Noise_Based import varlingam_model
@@ -66,32 +82,25 @@ class FeatureSelector:
 
         selector.fit()
 
-        # final_features = selector.select_features(return_only_var_names=True)
+        # 1. ("feature", lag) 튜플 리스트 확보
+        causal_features = selector.select_features(return_only_var_names=False)  # <-- 튜플 형태로 받아오기!
 
-        # Step 1: 인과변수 전체 선택
-        raw_features = selector.select_features(return_only_var_names=True)
+        # 2. 다중공선성 제거
+        feature_names = list(selector.filter_selected_features(
+            [var for (var, lag) in causal_features]
+        ))
 
-        # Step 2: 다중공선성 필터링
-        final_features = selector.filter_selected_features(raw_features)
+        # 3. 다중공선성 통과한 feature만 남기기
+        selected_causal_features = [(var, lag) for (var, lag) in causal_features if var in feature_names]
 
-        print(f"[VarLiNGAM] selected features for {self.target_col}: {final_features}")
-        return {"com_gold_causes": final_features}
+        print(f"[VarLiNGAM] selected features for {self.target_col}: {selected_causal_features}")
 
-    def _select_features_nbcb(self, config,  threshold=0.2):
-        from src.causal_discovery.Hybrid import NBCBe
+        return {
+            "com_gold_causes": selected_causal_features  # <-- 튜플 형태로 반환!
+        }
 
-        model = NBCBe(
-            data=self.data,
-            tau_max=config['tau_max'],
-            sig_level=0.05,
-            linear=True
-        )
 
-        model.run()
-        com_gold_causes = self._extract_com_gold_causes(model)
-        return {"full_result": model, "com_gold_causes": com_gold_causes}
-
-    def _select_features_cbnb(self, config,  threshold=0.2):
+    def _select_features_cbnb(self, config):
         from src.causal_discovery.Hybrid import CBNBe
 
         model = CBNBe(
@@ -102,24 +111,25 @@ class FeatureSelector:
         )
 
         model.run()
-        com_gold_causes = self._extract_com_gold_causes(model)
+
+        # 1. ("feature", lag) 튜플 리스트 확보
+        causal_features = model.window_causal_graph_dict[self.target_col]
+
+        # 2. 다중공선성 제거
+        # -> lag 무시하고 feature 이름만 보고 제거할지, 아니면 lag별로 볼지 결정해야 함
+        #    여기서는 기존처럼 feature 이름 단위로 제거한다고 가정
+        feature_names = CBNBe.filter_cbnb_by_multicollinearity(self.data, causal_features)
+
+        # 3. 다중공선성 통과한 feature만 남기기
+        # ("feature", lag) 리스트에서 feature_name 필터링
+        selected_causal_features = [(var, lag) for (var, lag) in causal_features if var in feature_names]
+
+        print(f"CBNB selected features for {self.target_col}: {selected_causal_features}")
+
         return {
             "full_result": model,
-            "com_gold_causes": com_gold_causes
+            "com_gold_causes": selected_causal_features  # <-- 튜플 형태로 반환!
         }
-
-    def _extract_com_gold_causes(self, model_obj) -> List[str]:
-        target = self.target_col
-        if target not in model_obj.window_causal_graph_dict:
-            print(f"{target} not in window_causal_graph_dict!")
-            return []
-
-        parents_info = model_obj.window_causal_graph_dict[target]
-        cause_vars = set()
-        for (cause_var, lag) in parents_info:
-            if cause_var != target:
-                cause_vars.add(cause_var)
-        return sorted(list(cause_vars))
 
     def select_features(self):
         if self.method == "Lasso":
@@ -128,8 +138,6 @@ class FeatureSelector:
             return self._select_features_pcmci(config = base_config)
         elif self.method == "VARLiNGAM":
             return self._select_features_varlingam(config = base_config)
-        elif self.method == "NBCB":
-            return self._select_features_nbcb(config = base_config)
         elif self.method == "CBNB":
             return self._select_features_cbnb(config = base_config)
         else:

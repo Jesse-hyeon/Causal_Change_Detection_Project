@@ -13,6 +13,8 @@ from causallearn.graph.GraphNode import GraphNode
 
 from lingam.var_lingam import VARLiNGAM
 from lingam.resit import RESIT
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 
 def run_varlingam(data, tau_max):
     model = VARLiNGAM(lags=tau_max, criterion='bic', prune=True)
@@ -146,6 +148,53 @@ class CBNBe:
                     elif summary_matrix.loc[dst, src] == 1:
                         self.causal_graph.add_edge(Edge(GraphNode(dst), GraphNode(src), Endpoint.TAIL, Endpoint.ARROW))
 
+    def filter_cbnb_by_multicollinearity(data: pd.DataFrame, causal_list: list, vif_thresh=5.0, corr_thresh=0.8):
+        """
+        CBNB의 causal_list [(var, lag), ...] 를 입력받아
+        VIF + 상관관계 기반으로 다중공선성 제거하고
+        중요 변수만 반환
+        """
+        # Step 1: 변수별 인과 횟수(가중치) 계산
+        from collections import Counter
+        var_counter = Counter([var for var, lag in causal_list])
+
+        # Step 2: VIF 계산
+        vars_unique = sorted(set(var_counter.keys()))
+        X = data[vars_unique].copy()
+
+        vif_vals = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+        vif_df = pd.DataFrame({"var": X.columns, "vif": vif_vals})
+        high_vif = vif_df[vif_df["vif"] > vif_thresh]["var"].tolist()
+
+        # Step 3: 상관관계 그룹핑
+        corr_matrix = X[high_vif].corr().abs()
+        groups = []
+        visited = set()
+
+        for col in corr_matrix.columns:
+            if col in visited:
+                continue
+            group = set([col])
+            for other in corr_matrix.columns:
+                if col != other and corr_matrix.loc[col, other] > corr_thresh:
+                    group.add(other)
+                    visited.add(other)
+            visited.update(group)
+            if len(group) > 1:
+                groups.append(group)
+
+        # Step 4: 각 그룹에서 등장횟수(인과점수) 가장 높은 변수 선택
+        selected = []
+        for group in groups:
+            best = max(group, key=lambda var: var_counter.get(var, 0))
+            selected.append(best)
+
+        # Step 5: 그룹 밖 변수는 그대로 추가
+        ungrouped = set(vars_unique) - set().union(*groups)
+        selected += list(ungrouped)
+
+        return sorted(selected)
+
     def run(self):
         self.constraint_based()
         print(self.window_causal_graph, "(after constraint_based)")
@@ -240,6 +289,53 @@ class NBCBe:
                     self.window_causal_graph_dict[dst].append((src, 0))
         print("Window Causal Graph Dict:")
         print(self.window_causal_graph_dict)
+
+    def filter_nbcb_by_multicollinearity(data: pd.DataFrame, causal_list: list, vif_thresh=5.0, corr_thresh=0.8):
+        """
+        CBNB의 causal_list [(var, lag), ...] 를 입력받아
+        VIF + 상관관계 기반으로 다중공선성 제거하고
+        중요 변수만 반환
+        """
+        # Step 1: 변수별 인과 횟수(가중치) 계산
+        from collections import Counter
+        var_counter = Counter([var for var, lag in causal_list])
+
+        # Step 2: VIF 계산
+        vars_unique = sorted(set(var_counter.keys()))
+        X = data[vars_unique].copy()
+
+        vif_vals = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+        vif_df = pd.DataFrame({"var": X.columns, "vif": vif_vals})
+        high_vif = vif_df[vif_df["vif"] > vif_thresh]["var"].tolist()
+
+        # Step 3: 상관관계 그룹핑
+        corr_matrix = X[high_vif].corr().abs()
+        groups = []
+        visited = set()
+
+        for col in corr_matrix.columns:
+            if col in visited:
+                continue
+            group = set([col])
+            for other in corr_matrix.columns:
+                if col != other and corr_matrix.loc[col, other] > corr_thresh:
+                    group.add(other)
+                    visited.add(other)
+            visited.update(group)
+            if len(group) > 1:
+                groups.append(group)
+
+        # Step 4: 각 그룹에서 등장횟수(인과점수) 가장 높은 변수 선택
+        selected = []
+        for group in groups:
+            best = max(group, key=lambda var: var_counter.get(var, 0))
+            selected.append(best)
+
+        # Step 5: 그룹 밖 변수는 그대로 추가
+        ungrouped = set(vars_unique) - set().union(*groups)
+        selected += list(ungrouped)
+
+        return sorted(selected)
 
     def run(self):
         self.noise_based()
