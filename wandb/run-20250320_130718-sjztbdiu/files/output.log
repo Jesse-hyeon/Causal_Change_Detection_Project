@@ -1,7 +1,0 @@
-[I 2025-03-20 13:07:19,341] A new study created in memory with name: no-name-4a50a226-9b8e-45e3-b32f-1a801ee4a343
---- TS-CV Fold 1/2 ---
-Use CPU
-start training
-train 1889
-val 1
-test 192

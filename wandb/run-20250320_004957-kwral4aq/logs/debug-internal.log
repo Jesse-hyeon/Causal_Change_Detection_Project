@@ -1,7 +1,0 @@
-{"time":"2025-03-20T00:49:57.935549+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/Users/choeseoheon/Desktop/Causal-Discovery/wandb/run-20250320_004957-kwral4aq/logs/debug-core.log"}
-{"time":"2025-03-20T00:49:58.042264+09:00","level":"INFO","msg":"created new stream","id":"kwral4aq"}
-{"time":"2025-03-20T00:49:58.042319+09:00","level":"INFO","msg":"stream: started","id":"kwral4aq"}
-{"time":"2025-03-20T00:49:58.042341+09:00","level":"INFO","msg":"handler: started","stream_id":"kwral4aq"}
-{"time":"2025-03-20T00:49:58.04235+09:00","level":"INFO","msg":"sender: started","stream_id":"kwral4aq"}
-{"time":"2025-03-20T00:49:58.042356+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"kwral4aq"}
-{"time":"2025-03-20T00:49:58.428385+09:00","level":"INFO","msg":"Starting system monitor"}
